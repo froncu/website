@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Jakub Frątczak — Engine &amp; graphics programmer</title>
-<meta name="description" content="Jakub Frątczak, C++ engine and graphics programmer. A Vulkan PBR renderer, a 2D engine built from scratch, and a cycle-accurate NES emulator on C++ coroutines." />
-<meta name="theme-color" content="#F5F4EF" />
-<meta property="og:title" content="Jakub Frątczak — Engine &amp; graphics programmer" />
+<title>Jakub Frątczak — Graphics engineer</title>
+<meta name="description" content="Jakub Frątczak, graphics engineer at Day III Digital. On the side: a Vulkan PBR renderer, a 2D engine built from scratch, and a cycle-accurate NES emulator on C++ coroutines." />
+<meta name="theme-color" content="#0D0E11" />
+<meta property="og:title" content="Jakub Frątczak — Graphics engineer" />
 <meta property="og:description" content="Renderers, engines and emulators. Mostly from scratch, mostly in C++." />
 <meta property="og:image" content="https://froncu.dev/code/hero.png" />
 <meta property="og:url" content="https://froncu.dev/code/" />
@@ -18,17 +18,17 @@
 <style>
 /* ─── tokens ─────────────────────────────────────────────────────────── */
 :root{
-  --paper:#F5F4EF;
-  --paper-2:#ECEBE4;
-  --card:#FBFAF7;
-  --ink:#131418;
-  --ink-2:#464A53;
-  --ink-3:#7D8089;
-  --rule:#DFDDD5;
-  --rule-2:#C9C7BE;
-  --accent:#3F3FE6;              /* a tangent-space normal (128,128,255), deepened for paper */
-  --accent-tint:#E6E6FA;
-  --code-bg:#14151A;
+  --paper:#0D0E11;
+  --paper-2:#15171C;
+  --card:#111317;
+  --ink:#E9EAEE;
+  --ink-2:#A2A6B0;
+  --ink-3:#6C707A;
+  --rule:#22252C;
+  --rule-2:#30343C;
+  --accent:#8C8CFF;              /* a flat tangent-space normal: (128,128,255) */
+  --accent-tint:rgba(140,140,255,.13);
+  --code-bg:#08090B;
   --sans:'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --serif:'Source Serif 4', 'Iowan Old Style', Georgia, serif;
   --mono:'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
@@ -40,14 +40,23 @@
 *,*::before,*::after{box-sizing:border-box}
 html{scroll-behavior:smooth; -webkit-text-size-adjust:100%; background:var(--paper)}
 body{
-  margin:0; background:var(--paper); color:var(--ink);
+  margin:0; color:var(--ink); position:relative;
   font-family:var(--sans); font-size:16px; line-height:1.6;
   -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
 }
 img{display:block; max-width:100%}
 a{color:inherit}
 button{font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer}
-::selection{background:var(--accent); color:#fff}
+::selection{background:var(--accent); color:#0B0B12}
+body::before{ /* faint graph paper behind the hero */
+  content:""; position:absolute; left:0; right:0; top:0; height:980px; z-index:-1; pointer-events:none;
+  background:
+    linear-gradient(var(--rule) 1px, transparent 1px) 0 0/40px 40px,
+    linear-gradient(90deg, var(--rule) 1px, transparent 1px) 0 0/40px 40px;
+  opacity:.55;
+  -webkit-mask-image:radial-gradient(75% 65% at 72% 0%, #000 0%, transparent 78%);
+          mask-image:radial-gradient(75% 65% at 72% 0%, #000 0%, transparent 78%);
+}
 :focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
 .wrap{max-width:1180px; margin:0 auto; padding-inline:var(--pad)}
 .mono{font-family:var(--mono); font-weight:500; font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3)}
@@ -57,7 +66,7 @@ button{font:inherit; color:inherit; background:none; border:0; padding:0; cursor
 /* ─── nav ────────────────────────────────────────────────────────────── */
 .nav{
   position:sticky; top:0; z-index:50; height:var(--nav-h);
-  background:rgba(245,244,239,.86); backdrop-filter:blur(12px) saturate(1.2);
+  background:rgba(13,14,17,.8); backdrop-filter:blur(12px) saturate(1.3);
   border-bottom:1px solid var(--rule);
 }
 .nav__in{display:flex; align-items:center; gap:clamp(14px,2.6vw,30px); height:100%}
@@ -92,9 +101,9 @@ button{font:inherit; color:inherit; background:none; border:0; padding:0; cursor
 }
 .btn:hover{border-color:var(--ink); transform:translateY(-1px)}
 .btn--ink{background:var(--ink); border-color:var(--ink); color:var(--paper)}
-.btn--ink:hover{background:#2A2C33; border-color:#2A2C33}
-.btn--accent{background:var(--accent); border-color:var(--accent); color:#fff}
-.btn--accent:hover{background:#3030C8; border-color:#3030C8}
+.btn--ink:hover{background:#fff; border-color:#fff}
+.btn--accent{background:var(--accent); border-color:var(--accent); color:#0B0B12}
+.btn--accent:hover{background:#A6A6FF; border-color:#A6A6FF}
 .btn svg{width:14px; height:14px; flex:0 0 auto}
 .btn--sm{height:36px; padding:0 14px; font-size:.84rem}
 
@@ -118,7 +127,7 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 .spec dd span{color:var(--ink-3); font-weight:400}
 
 /* ─── figure 1: the live viewport ────────────────────────────────────── */
-.vp{border:1px solid var(--rule-2); border-radius:8px; background:var(--card); overflow:hidden; box-shadow:0 30px 60px -36px rgba(30,30,60,.35)}
+.vp{border:1px solid var(--rule-2); border-radius:8px; background:var(--card); overflow:hidden; box-shadow:0 40px 80px -40px rgba(0,0,0,.85)}
 .vp__tabs{display:flex; border-bottom:1px solid var(--rule); overflow-x:auto; scrollbar-width:none}
 .vp__tabs::-webkit-scrollbar{display:none}
 .vp__tab{
@@ -163,8 +172,8 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 .meta div{display:grid; grid-template-columns:72px 1fr; gap:12px; padding:9px 0; border-bottom:1px solid var(--rule)}
 .meta dt{font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); padding-top:3px}
 .meta dd{margin:0; font-size:.88rem; line-height:1.5}
-.badge{display:inline-block; padding:1px 7px; border-radius:4px; font-family:var(--mono); font-size:.66rem; letter-spacing:.04em; text-transform:uppercase; background:#FFF1D6; color:#8A5A00; border:1px solid #F1D9A6}
-.badge--win{background:#E3F4EA; color:#17663C; border-color:#BFE3CD}
+.badge{display:inline-block; padding:1px 7px; border-radius:4px; font-family:var(--mono); font-size:.66rem; letter-spacing:.04em; text-transform:uppercase; background:rgba(242,190,90,.1); color:#F0C36A; border:1px solid rgba(242,190,90,.3)}
+.badge--win{background:rgba(80,200,130,.1); color:#7DD8A4; border-color:rgba(80,200,130,.3)}
 .case__links{display:flex; flex-wrap:wrap; gap:8px; margin-top:20px}
 
 .fig{margin:0}
@@ -182,12 +191,12 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 
 /* code listing */
 .listing{margin:28px 0 0}
-.listing__bar{display:flex; justify-content:space-between; align-items:center; gap:12px; padding:9px 14px; background:#1C1D23; border-radius:8px 8px 0 0; font-family:var(--mono); font-size:.68rem; color:#9EA2AD}
+.listing__bar{display:flex; justify-content:space-between; align-items:center; gap:12px; padding:9px 14px; background:var(--paper-2); border:1px solid var(--rule-2); border-bottom:0; border-radius:8px 8px 0 0; font-family:var(--mono); font-size:.68rem; color:var(--ink-3)}
 .listing__bar span{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left}
 .listing__bar a{flex:0 0 auto; white-space:nowrap; color:#C9CBF8; text-decoration:none}
 .listing__bar a:hover{text-decoration:underline}
 .listing pre{
-  margin:0; padding:18px 20px; overflow-x:auto; background:var(--code-bg); color:#D8DAE0; border-radius:0 0 8px 8px;
+  margin:0; padding:18px 20px; overflow-x:auto; background:var(--code-bg); color:#D8DAE0; border:1px solid var(--rule-2); border-radius:0 0 8px 8px;
   font-family:var(--mono); font-size:.8rem; line-height:1.65; tab-size:3;
   scrollbar-width:thin; scrollbar-color:#3A3C45 transparent;
 }
@@ -202,7 +211,7 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 /* ─── more projects ──────────────────────────────────────────────────── */
 .cards{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:clamp(18px,2.4vw,28px)}
 .card{display:flex; flex-direction:column; border:1px solid var(--rule-2); border-radius:10px; background:var(--card); overflow:hidden; transition:border-color .2s, box-shadow .2s}
-.card:hover{border-color:var(--ink-3); box-shadow:0 24px 40px -30px rgba(30,30,60,.4)}
+.card:hover{border-color:var(--ink-3); box-shadow:0 30px 50px -30px rgba(0,0,0,.9)}
 .card__img{aspect-ratio:16/9; background:var(--paper-2); border-bottom:1px solid var(--rule); overflow:hidden}
 .card__img img{width:100%; height:100%; object-fit:cover; transition:transform .5s ease}
 .card:hover .card__img img{transform:scale(1.03)}
@@ -224,7 +233,7 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 .tag{font-family:var(--mono); font-size:.64rem; letter-spacing:.03em; color:var(--ink-2); border:1px solid var(--rule-2); border-radius:4px; padding:3px 7px; background:var(--paper)}
 
 /* ─── toolbox ────────────────────────────────────────────────────────── */
-.tools{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); border-top:1px solid var(--ink)}
+.tools{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); border-top:1px solid var(--ink-3)}
 .tools > div{padding:18px 18px 22px 0}
 .tools > div + div{padding-left:18px; border-left:1px solid var(--rule)}
 .tools h3{margin:0 0 12px; font-family:var(--mono); font-size:.72rem; font-weight:500; letter-spacing:.08em; text-transform:uppercase}
@@ -240,13 +249,13 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 .facts li{display:grid; grid-template-columns:72px 1fr; gap:12px; padding:9px 0; border-bottom:1px solid var(--rule); font-size:.88rem}
 .facts .mono{font-size:.64rem; padding-top:3px}
 .facts a{text-decoration:none; border-bottom:1.5px solid #FF3B24}
-.facts a:hover{color:#C2190C}
+.facts a:hover{color:#FF6A55}
 .about .prose{margin-top:0}
 .about .prose a{color:var(--ink); text-decoration:none; border-bottom:1.5px solid var(--accent)}
 .about .prose a:hover{background:var(--accent-tint)}
 
 /* ─── contact ────────────────────────────────────────────────────────── */
-.contact{border-top:1px solid var(--ink); padding-block:clamp(48px,7vw,88px)}
+.contact{border-top:1px solid var(--rule-2); padding-block:clamp(48px,7vw,88px)}
 .contact__grid{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:clamp(28px,4vw,56px); align-items:end}
 .contact h2{margin:0; font-size:clamp(2.2rem,5vw,3.8rem); font-weight:600; letter-spacing:-.045em; line-height:1}
 .contact h2 em{font-family:var(--serif); font-weight:400; font-style:italic; letter-spacing:-.02em; color:var(--accent)}
@@ -260,14 +269,15 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 .foot{padding-block:28px 40px}
 .xlink{
   display:grid; grid-template-columns:auto 1fr auto; gap:6px 20px; align-items:center;
-  padding:18px 22px; border-radius:10px; background:#0B0908; color:#F0E9DD; text-decoration:none;
-  transition:background .25s;
+  padding:18px 22px; border-radius:10px; background:#150C0A; border:1px solid #3A1D17; color:#F0E9DD; text-decoration:none;
+  transition:background .25s, border-color .25s;
 }
-.xlink:hover{background:#FF3B24; color:#1C0603}
-.xlink__tag{font-family:'Anton', Impact, 'Arial Narrow Bold', sans-serif; font-size:1.5rem; line-height:1; text-transform:uppercase; letter-spacing:.01em}
+.xlink:hover{background:#FF3B24; border-color:#FF3B24; color:#1C0603}
+.xlink__tag{color:#FF3B24; transition:color .25s; font-family:'Anton', Impact, 'Arial Narrow Bold', sans-serif; font-size:1.5rem; line-height:1; text-transform:uppercase; letter-spacing:.01em}
 .xlink__txt{font-size:.95rem; opacity:.85}
 .xlink__go{font-size:1.3rem; transition:transform .25s}
 .xlink:hover .xlink__go{transform:translateX(4px)}
+.xlink:hover .xlink__tag{color:#1C0603}
 .foot__base{display:flex; flex-wrap:wrap; gap:10px 24px; justify-content:space-between; margin-top:26px; padding-top:18px; border-top:1px solid var(--rule)}
 .foot__base p{margin:0}
 .foot__base a{text-decoration:none}
@@ -354,8 +364,8 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
       <div>
         <p class="mono hero__eyebrow">C++ · Engine · Graphics</p>
         <h1>Jakub Frątczak</h1>
-        <p class="hero__lead"><strong>Engine &amp; graphics programmer.</strong> I build renderers, engines and emulators in modern C++, mostly from scratch.</p>
-        <span class="status"><i aria-hidden="true"></i>Looking for engine &amp; graphics roles in Poland</span>
+        <p class="hero__lead"><strong>Graphics engineer.</strong> I build renderers, engines and emulators in modern C++, mostly from scratch.</p>
+        <span class="status"><i aria-hidden="true"></i>Currently at Day III Digital</span>
         <div class="hero__cta">
           <a class="btn btn--ink" href="#work">See the work <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
           <a class="btn" href="resume.pdf" target="_blank" rel="noopener">Résumé <span class="mono" style="font-size:.62rem">PDF</span></a>
@@ -389,9 +399,9 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
     </div>
 
     <dl class="spec">
-      <div><dt class="mono">Building now</dt><dd>Eruptor <span>(Vulkan PBR)</span> &amp; FroNES <span>(NES emulator)</span></dd></div>
-      <div><dt class="mono">Studying</dt><dd>Digital Arts &amp; Entertainment <span>· Howest</span></dd></div>
-      <div><dt class="mono">Writes</dt><dd>C++14 → C++23 <span>· 6502 assembly</span></dd></div>
+      <div><dt class="mono">Working</dt><dd>Graphics engineer <span>· Day III Digital</span></dd></div>
+      <div><dt class="mono">Graduated</dt><dd>Digital Arts &amp; Entertainment <span>· Howest, magna cum laude</span></dd></div>
+      <div><dt class="mono">On the side</dt><dd>Eruptor <span>(Vulkan PBR)</span> &amp; FroNES <span>(NES emulator)</span></dd></div>
       <div><dt class="mono">Based</dt><dd>Belgium <span>· Polish roots</span></dd></div>
     </dl>
   </section>
@@ -400,7 +410,7 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
   <section class="section wrap" id="work" style="padding-top:clamp(24px,4vw,48px)">
     <div class="shead reveal">
       <div><span class="shead__num">§1</span><h2>Selected work</h2></div>
-      <p>Three from-scratch projects: a renderer, an engine and an emulator. What each one does, what I built, and the techniques behind it.</p>
+      <p>Three side projects, built from scratch: a renderer, an engine and an emulator. What each one does, what I built, and the techniques behind it.</p>
     </div>
 
     <!-- Eruptor -->
@@ -613,13 +623,13 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
   <section class="section wrap" id="toolbox" style="padding-top:0">
     <div class="shead reveal">
       <div><span class="shead__num">§3</span><h2>Toolbox</h2></div>
-      <p>Everything here is used in at least one of the projects above.</p>
+      <p>What I work with, at work and in the projects above.</p>
     </div>
     <div class="tools reveal">
       <div><h3>Languages</h3><ul><li>C++ <span>14 → 23</span></li><li>6502 assembly</li></ul></div>
       <div><h3>Graphics</h3><ul><li>Vulkan <span>· Vulkan-Hpp</span></li><li>PBR, deferred shading</li><li>HDR &amp; tone mapping</li><li>Compute shaders</li></ul></div>
       <div><h3>Engine &amp; systems</h3><ul><li>ECS <span>· sparse sets</span></li><li>2D physics</li><li>Input systems</li><li>Coroutines</li><li>Emulation</li></ul></div>
-      <div><h3>Tools</h3><ul><li>CMake, vcpkg</li><li>SDL2 / SDL3</li><li>Dear ImGui</li><li>Unreal Engine 5</li><li>Emscripten</li></ul></div>
+      <div><h3>Tools</h3><ul><li>Git, Perforce</li><li>CMake, vcpkg</li><li>SDL2 / SDL3</li><li>Dear ImGui</li><li>Unreal Engine 5</li><li>Emscripten</li></ul></div>
     </div>
   </section>
 
@@ -627,13 +637,14 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
   <section class="section wrap" id="about" style="padding-top:0">
     <div class="shead reveal">
       <div><span class="shead__num">§4</span><h2>About</h2></div>
-      <p>From not knowing what to study to writing Vulkan for fun.</p>
+      <p>From not knowing what to study to graphics engineering.</p>
     </div>
     <div class="about reveal">
       <div>
         <figure class="portrait"><img src="hero.png" alt="Portrait of Jakub Frątczak" loading="lazy" decoding="async" /></figure>
         <ul class="facts">
-          <li><span class="mono">School</span><span>Howest, Digital Arts &amp; Entertainment</span></li>
+          <li><span class="mono">Work</span><span>Graphics engineer, Day III Digital</span></li>
+          <li><span class="mono">Degree</span><span>Digital Arts &amp; Entertainment, Howest. Magna cum laude</span></li>
           <li><span class="mono">Based</span><span>Belgium, with Polish roots</span></li>
           <li><span class="mono">Focus</span><span>Engine, graphics, embedded</span></li>
           <li><span class="mono">Judo</span><span>Belgian U21 +100 kg champion, 2022</span></li>
@@ -642,7 +653,7 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
       </div>
       <div class="prose">
         <p>During my final years of high school, I wasn’t sure what career path to pursue. My interests in mathematics, physics, computers and games naturally led me to <strong>game development</strong>.</p>
-        <p>I began studying at <a href="https://digitalartsandentertainment.be/" target="_blank" rel="noopener"><strong>DAE</strong></a>, where I discovered programming for the first time. We started with <strong>C++</strong>, and I was instantly hooked.</p>
+        <p>I began studying at <a href="https://digitalartsandentertainment.be/" target="_blank" rel="noopener"><strong>DAE</strong></a>, where I discovered programming for the first time. We started with <strong>C++</strong>, and I was instantly hooked. I graduated <strong>magna cum laude</strong> and now work as a <strong>graphics engineer at Day III Digital</strong>.</p>
         <p>Since then I’ve become a passionate C++ developer focused on <strong>high-performance code</strong> with a <strong>clean API</strong> and <strong>modern C++ features</strong>. I especially enjoy <strong>engine</strong>, <strong>graphics</strong> and <strong>embedded</strong> programming.</p>
         <p>Born and raised in Belgium with Polish roots, my long-term goal is to <strong>return to Poland</strong> and build my career there.</p>
         <p>Outside of programming I value a healthy lifestyle. I practised <strong>judo</strong> for eight years, winning the <strong>Belgian U21 +100 kg title</strong> in 2022, and I enjoy weightlifting in my free time.</p>
@@ -655,8 +666,8 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
     <div class="wrap contact__grid reveal">
       <div>
         <span class="shead__num">§5</span>
-        <h2>Building something in C++? <em>Let’s talk.</em></h2>
-        <p>I’m looking for engine and graphics programming roles, ideally in Poland. LinkedIn is the quickest way to reach me.</p>
+        <h2>Want to talk graphics? <em>Say hi.</em></h2>
+        <p>Questions about one of these projects, or just want to talk rendering, engines or emulators? LinkedIn is the quickest way to reach me.</p>
       </div>
       <nav class="contact__links" aria-label="Contact">
         <a href="https://linkedin.com/in/froncu" target="_blank" rel="noopener">LinkedIn <span>/in/froncu ↗</span></a>
@@ -959,7 +970,7 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
     const bw = w / hist.length;
     for (let i = 0; i < hist.length; i++){
       const bh = Math.max(1, Math.min(hist[i] / 33.3, 1) * h);
-      pctx.fillStyle = i === hist.length - 1 ? '#3F3FE6' : '#C9C7BE';
+      pctx.fillStyle = i === hist.length - 1 ? '#8C8CFF' : '#30343C';
       pctx.fillRect(i * bw, h - bh, Math.max(1, bw - 1), bh);
     }
   }

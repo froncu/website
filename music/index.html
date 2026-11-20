@@ -110,7 +110,7 @@ body::after{
 }
 .hero__media{position:absolute; inset:0; z-index:-2; background:var(--red); isolation:isolate}
 .hero__media img{
-  width:100%; height:100%; object-fit:cover; object-position:50% 28%;
+  width:100%; height:100%; object-fit:cover; object-position:50% 6%;
   filter:grayscale(1) contrast(1.45) brightness(1.02); mix-blend-mode:multiply;
 }
 .hero__shade{
@@ -140,14 +140,16 @@ body::after{
 /* buttons */
 .cta{
   display:inline-flex; align-items:center; gap:12px; height:50px; padding:0 24px 0 10px;
-  border-radius:999px; background:var(--red); color:var(--red-ink); text-decoration:none;
+  border-radius:999px; background:var(--bone); color:var(--ink); text-decoration:none;
   font-size:.78rem; font-weight:800; letter-spacing:.11em; text-transform:uppercase;
-  transition:background .2s, transform .2s;
+  box-shadow:0 12px 30px -12px rgba(0,0,0,.7);
+  transition:background .2s, color .2s, transform .2s;
 }
-.cta:hover{background:var(--bone); transform:translateY(-2px)}
-.cta__play{width:32px; height:32px; border-radius:50%; background:var(--red-ink); display:grid; place-items:center; flex:0 0 auto}
-.cta__play svg{width:11px; height:11px; margin-left:2px; fill:var(--red); transition:fill .2s}
-.cta:hover .cta__play svg{fill:var(--bone)}
+.cta:hover{background:var(--red); color:var(--red-ink); transform:translateY(-2px)}
+.cta__play{width:32px; height:32px; border-radius:50%; background:var(--red); display:grid; place-items:center; flex:0 0 auto; transition:background .2s}
+.cta__play svg{width:11px; height:11px; margin-left:2px; fill:var(--ink); transition:fill .2s}
+.cta:hover .cta__play{background:var(--red-ink)}
+.cta:hover .cta__play svg{fill:var(--red)}
 .ghost{
   display:inline-flex; align-items:center; height:50px; padding:0 22px; border-radius:999px;
   border:1px solid rgba(240,233,221,.35); background:rgba(11,9,8,.35); backdrop-filter:blur(6px);
@@ -525,13 +527,13 @@ body::after{
       <h2 class="statement reveal"><span class="ln">Engine code <em>by day.</em></span> <span class="ln">Bars <em>by night.</em></span></h2>
       <div class="bio reveal">
         <!-- Draft bio, written from what's on the code side of the site. Make it yours. -->
-        <p>I’m <strong>Jakub</strong>, born and raised in <strong>Belgium</strong> with <strong>Polish roots</strong>. By day I write C++: engines, renderers, emulators. The rest of the time I’m writing verses and recording them as <strong>Froncu</strong>.</p>
+        <p>I’m <strong>Jakub</strong>, born and raised in <strong>Belgium</strong> with <strong>Polish roots</strong>. By day I’m a graphics engineer writing C++. The rest of the time I’m writing verses and recording them as <strong>Froncu</strong>.</p>
         <p>Eight years of judo and a Belgian U21 title taught me that the reps nobody sees are the ones that count. The booth is no different.</p>
         <ul class="facts">
           <li><span class="kicker">Artist name</span><span>Froncu</span></li>
           <li><span class="kicker">Based</span><span>Belgium</span></li>
           <li><span class="kicker">Roots</span><span>Poland</span></li>
-          <li><span class="kicker">Day job</span><span><a href="../code/">C++ engine &amp; graphics programmer</a></span></li>
+          <li><span class="kicker">Day job</span><span><a href="../code/">Graphics engineer</a></span></li>
         </ul>
       </div>
     </div>
@@ -562,7 +564,7 @@ body::after{
 
     <a class="other" href="../code/">
       <span class="other__tag">The other side</span>
-      <span class="other__txt"><b>Jakub Frątczak</b> — C++ engine &amp; graphics programmer. Renderers, engines, emulators.</span>
+      <span class="other__txt"><b>Jakub Frątczak</b>, graphics engineer. Renderers, engines, emulators.</span>
       <span class="other__go" aria-hidden="true">→</span>
     </a>
 
@@ -757,28 +759,57 @@ renderFooter();
    ══════════════════════════════════════════════════════════════════════ */
 (function fitName(){
   const h1 = $('heroName');
+  const hero = h1.closest('.hero');
+  const row = hero.querySelector('.hero__row');
   const box = h1.querySelector('.fitbox');
   const words = Array.prototype.slice.call(box.querySelectorAll('.w'));
   const stacked = matchMedia('(max-width: 640px)');
+  const ctx = document.createElement('canvas').getContext('2d');
 
-  function fitTo(el, avail){
+  /* how far the capitals rise above the baseline, as a fraction of the font size */
+  function capRatio(el){
+    ctx.font = '100px ' + getComputedStyle(el).fontFamily;
+    const m = ctx.measureText(el.textContent.toUpperCase());
+    return (m.actualBoundingBoxAscent || 73) / 100;
+  }
+  function fitTo(el, avail, maxSize){
     el.style.fontSize = '100px';
     const w = el.getBoundingClientRect().width;
-    if (w) el.style.fontSize = (100 * avail / w).toFixed(2) + 'px';
+    if (w) el.style.fontSize = Math.min(100 * avail / w, maxSize).toFixed(2) + 'px';
+  }
+  /* top of the actual letters (not the line box), relative to the h1's top edge.
+     Both rects sit inside the h1, so its entrance animation cancels out. */
+  function inkOffset(el){
+    const probe = document.createElement('span');
+    probe.style.cssText = 'display:inline-block;width:0;height:0;vertical-align:baseline';
+    el.appendChild(probe);
+    const base = probe.getBoundingClientRect().top - h1.getBoundingClientRect().top;
+    probe.remove();
+    return base - capRatio(el) * parseFloat(getComputedStyle(el).fontSize);
   }
   function fit(){
     const cs = getComputedStyle(h1);
     const avail = h1.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    /* never let the capitals take more than ~45% of the screen height */
+    const heroH = Math.max(560, window.innerHeight - 62);
+    const maxSize = 0.45 * heroH / capRatio(words[0]);
     if (stacked.matches){
       box.style.fontSize = '';
-      words.forEach(w => fitTo(w, avail));
+      words.forEach(w => fitTo(w, avail, maxSize));
     } else {
       words.forEach(w => { w.style.fontSize = ''; });
-      fitTo(box, avail);
+      fitTo(box, avail, maxSize);
     }
+    /* keep a real gap between the buttons and the top of the letters, whatever the font metrics */
+    h1.style.marginTop = '0px';
+    const want = Math.max(24, Math.min(48, window.innerWidth * 0.03));
+    /* offsetTop ignores transforms, so this is the settled layout, not a mid-animation frame */
+    const gap = (h1.offsetTop + inkOffset(words[0])) - (row.offsetTop + row.offsetHeight);
+    h1.style.marginTop = Math.max(0, want - gap).toFixed(1) + 'px';
   }
   fit();
   new ResizeObserver(fit).observe(h1);
+  addEventListener('resize', fit);
   if (document.fonts){
     document.fonts.ready.then(fit);
     document.fonts.addEventListener && document.fonts.addEventListener('loadingdone', fit);
