@@ -105,7 +105,9 @@ body::after{
 /* ─── hero ───────────────────────────────────────────────────────────── */
 .hero{
   position:relative; isolation:isolate; overflow:hidden;
-  min-height:calc(100svh - var(--nav-h)); min-height:max(560px, calc(100svh - var(--nav-h)));
+  --tape-room:clamp(56px, calc(2.2vw + 40px), 110px);   /* the ticker must fit on the first screen, tilted ends included */
+  min-height:calc(100vh - var(--nav-h) - var(--tape-room));
+  min-height:max(520px, calc(100svh - var(--nav-h) - var(--tape-room)));
   display:flex; flex-direction:column; justify-content:flex-end;
 }
 .hero__media{position:absolute; inset:0; z-index:-2; background:var(--red); isolation:isolate}
@@ -120,10 +122,10 @@ body::after{
     linear-gradient(90deg, rgba(11,9,8,.45), rgba(11,9,8,0) 45%);
 }
 .hero > .wrap{width:100%}
-.hero__top{position:absolute; top:0; left:0; right:0; display:flex; justify-content:space-between; gap:16px; padding-top:22px}
+.hero__top{position:absolute; top:0; left:0; right:0; z-index:2; display:flex; justify-content:space-between; gap:16px; padding-top:22px}
 .hero__top .kicker{color:var(--bone)}
 .hero__top .kicker span{color:var(--red-ink)}
-.hero__row{display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:18px 32px; margin-bottom:clamp(16px,3vw,44px)}
+.hero__row{position:relative; z-index:2; display:flex; flex-wrap:wrap; align-items:flex-end; justify-content:space-between; gap:18px 32px; margin-bottom:clamp(16px,3vw,44px)}
 .hero__new{margin:0; max-width:30ch; font-size:clamp(1rem,1.5vw,1.2rem); line-height:1.4; color:var(--bone-2)}
 .hero__new strong{color:var(--bone); font-weight:700}
 .hero__new em{color:var(--bone); font-size:1.15em}
@@ -132,6 +134,7 @@ body::after{
   margin:0; padding:0 var(--pad) clamp(28px,4.5vw,64px);
   font-family:var(--display); font-weight:400; text-transform:uppercase;
   line-height:.8; letter-spacing:-.004em; color:var(--bone); white-space:nowrap;
+  text-align:center; pointer-events:none; user-select:none;
 }
 .fitbox{display:inline-block; font-size:15.6vw}
 .fitbox .w{display:inline-block}
@@ -877,9 +880,10 @@ renderFooter();
   function fit(){
     const cs = getComputedStyle(h1);
     const avail = h1.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
-    /* never let the capitals take more than ~45% of the screen height */
-    const heroH = Math.max(560, window.innerHeight - 62);
-    const maxSize = 0.45 * heroH / capRatio(words[0]);
+    /* full width, unless the window is so wide and short that the capitals
+       would crowd out the labels and buttons above them */
+    const heroH = parseFloat(getComputedStyle(hero).minHeight) || hero.clientHeight;
+    const maxSize = Math.min(heroH * 0.68, heroH - 260) / capRatio(words[0]);
     if (stacked.matches){
       box.style.fontSize = '';
       words.forEach(w => fitTo(w, avail, maxSize));
