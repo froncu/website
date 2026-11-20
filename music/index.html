@@ -94,16 +94,21 @@ body::after{
 .nav__links a:hover::after{transform:scaleX(1)}
 
 /* site switch: home · code · music */
-.switch{display:flex; gap:2px; padding:3px; border-radius:999px; background:var(--ink-3); border:1px solid var(--line-2); flex:0 0 auto}
+.switch{gap:2px; padding:3px; border-radius:999px; background:var(--ink-3); border:1px solid var(--line-2)}
 .switch a{
-  display:flex; align-items:center; height:28px; padding:0 13px; border-radius:999px;
+  display:flex; align-items:center; border-radius:999px;
   font-size:.68rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase;
   color:var(--bone-3); text-decoration:none; transition:color .2s, background .2s;
 }
 .switch a:hover{color:var(--bone); background:rgba(240,233,221,.08)}
 .switch a[aria-current="page"]{background:var(--red); color:var(--red-ink)}
-.switch__home{padding:0 9px !important}
 .switch svg{width:14px; height:14px}
+/* shared with /code/: the toggle has the same size and spot on both pages */
+.switch{box-sizing:border-box; display:flex; flex:0 0 auto; width:184px; height:36px}
+.switch a{flex:1 1 0; min-width:0; justify-content:center; padding:0 !important}
+.switch .switch__home{flex:0 0 40px}
+@media (max-width:400px){ .switch{width:160px} .switch .switch__home{flex-basis:34px} }
+
 
 /* ─── hero ───────────────────────────────────────────────────────────── */
 .hero{
@@ -471,7 +476,7 @@ a.pf:hover .pf__txt small{color:var(--ink)}
   .record{max-width:560px}
   .about__grid{grid-template-columns:1fr}
 }
-@media (max-width:760px){
+@media (max-width:820px){   /* same breakpoint as /code/ */
   .nav__links{display:none}
   .switch{margin-left:auto}
 }
@@ -492,7 +497,6 @@ a.pf:hover .pf__txt small{color:var(--ink)}
 }
 @media (max-width:380px){
   .mark{font-size:1.2rem}
-  .switch a{padding:0 10px}
 }
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
