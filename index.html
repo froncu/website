@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-fx="home">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,6 +11,15 @@
 <meta property="og:image" content="https://froncu.dev/code/hero.png" />
 <meta property="og:url" content="https://froncu.dev/" />
 <meta property="og:type" content="website" />
+<!-- page transition: cover from the first paint until transitions.js takes over (failsafe after 4.5s) -->
+<style>
+html.fx-in::after{content:""; position:fixed; inset:0; z-index:10000; background:linear-gradient(90deg, #0D0E11 50%, #FF3B24 50%); animation:fx-failsafe .3s 4.5s forwards}
+@media (max-width:760px), (max-aspect-ratio:4/5){ html.fx-in::after{background:linear-gradient(180deg, #0D0E11 50%, #FF3B24 50%)} }
+@keyframes fx-failsafe{to{opacity:0; visibility:hidden}}
+</style>
+<noscript><style>html.fx-in::after{display:none}</style></noscript>
+<script>(function(r){if(!matchMedia('(prefers-reduced-motion: reduce)').matches){r.classList.add('fx-in','fx-busy');setTimeout(function(){r.classList.remove('fx-in','fx-busy')},4500)}})(document.documentElement)</script>
+<script src="transitions.js" defer></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
@@ -62,6 +71,8 @@ img{display:block}
 .split:has(.side:hover) .side:not(:hover){filter:brightness(.62) saturate(.8)}
 
 .side__in{position:relative; display:grid; gap:14px; max-width:520px; transition:opacity .5s, transform .7s var(--ease)}
+.fx-busy .side__in{opacity:0; transform:translateY(22px)}   /* rises in as the intro doors open */
+.side--music .side__in{transition-delay:.06s}
 .side__title{display:block; margin:0; line-height:.84}
 .side__sub{display:block; max-width:36ch; line-height:1.5}
 .side__go{display:inline-flex; align-items:center; gap:12px; justify-self:start; margin-top:12px}

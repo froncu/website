@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-fx="music">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,6 +11,14 @@
 <meta property="og:image" content="https://froncu.dev/music/artist.jpg" />
 <meta property="og:url" content="https://froncu.dev/music/" />
 <meta property="og:type" content="music.musician" />
+<!-- page transition: cover from the first paint until transitions.js takes over (failsafe after 4.5s) -->
+<style>
+html.fx-in::after{content:""; position:fixed; inset:0; z-index:10000; background:#FF3B24; animation:fx-failsafe .3s 4.5s forwards}
+@keyframes fx-failsafe{to{opacity:0; visibility:hidden}}
+</style>
+<noscript><style>html.fx-in::after{display:none}</style></noscript>
+<script>(function(r){if(!matchMedia('(prefers-reduced-motion: reduce)').matches){r.classList.add('fx-in','fx-busy');setTimeout(function(){r.classList.remove('fx-in','fx-busy')},4500)}})(document.documentElement)</script>
+<script src="../transitions.js" defer></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
@@ -350,10 +358,13 @@ body::after{
 .everywhere h2{margin:8px 0 0; font-family:var(--display); font-weight:400; text-transform:uppercase; font-size:clamp(2.6rem,6.4vw,5rem); line-height:.86; letter-spacing:-.004em}
 .everywhere__hint{margin:0; font-size:.68rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase; color:#6B6157}
 .pf-row{
-  overflow:hidden; cursor:grab; touch-action:pan-y; user-select:none; -webkit-user-select:none;
+  /* clip (not hidden): a hidden-overflow box is a scroll container, which would stop the
+     logos inside from inheriting touch-action, and phones would scroll the page instead */
+  overflow:hidden; overflow:clip; cursor:grab; touch-action:pan-y; user-select:none; -webkit-user-select:none;
   -webkit-mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
           mask-image:linear-gradient(90deg, transparent, #000 4%, #000 96%, transparent);
 }
+.pf-row *{touch-action:pan-y}   /* belt and braces for browsers without overflow:clip */
 .pf-row + .pf-row{margin-top:clamp(6px,1vw,14px)}
 .pf-row.is-dragging{cursor:grabbing}
 .pf-track{display:flex; width:max-content; will-change:transform}
@@ -469,6 +480,7 @@ a.pf:hover .pf__txt small{color:var(--ink)}
 .js .rise{opacity:0; transform:translateY(30px); animation:rise .9s cubic-bezier(.2,.7,.2,1) forwards}
 .js .rise.d1{animation-delay:.08s} .js .rise.d2{animation-delay:.2s} .js .rise.d3{animation-delay:.32s}
 @keyframes rise{to{opacity:1; transform:none}}
+.fx-busy .rise{animation-play-state:paused}   /* wait for the page transition */
 
 /* ─── responsive ─────────────────────────────────────────────────────── */
 @media (max-width:1000px){
@@ -1013,8 +1025,9 @@ function driftRows(){
 
   rows.forEach(r => {
     const el = r.row;
-    el.addEventListener('mouseenter', () => { r.hover = true; });
-    el.addEventListener('mouseleave', () => { r.hover = false; });
+    /* only a real mouse pauses on hover; a tap on a phone must not leave the row stuck */
+    el.addEventListener('pointerenter', e => { if (e.pointerType === 'mouse') r.hover = true; });
+    el.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse') r.hover = false; });
     /* keyboard focus brings the logo into view; a mouse click must not move anything */
     el.addEventListener('focusin', e => {
       const a = e.target.closest('.pf');
@@ -1038,14 +1051,16 @@ function driftRows(){
       if (r.moved){ r.x = r.drag.start - dx; place(r); }
     });
     /* let go: it drifts again straight away, unless the mouse is still resting on the row */
-    const end = () => {
+    const end = e => {
       if (!r.drag) return;
       r.drag = null; el.classList.remove('is-dragging');
-      r.hover = el.matches(':hover');
+      r.hover = !!e && e.pointerType === 'mouse' && el.matches(':hover');
     };
     el.addEventListener('pointerup', end);
     el.addEventListener('pointercancel', end);
-    el.addEventListener('lostpointercapture', end);
+    /* touch starts captured to the logo under the finger; moving capture to the row fires
+       lostpointercapture on that logo, which bubbles here and must not end the drag */
+    el.addEventListener('lostpointercapture', e => { if (e.target === el) end(e); });
     /* a drag that ends on a logo is not a click */
     el.addEventListener('click', e => { if (r.moved){ e.preventDefault(); e.stopPropagation(); r.moved = false; } }, true);
   });

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-fx="code">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,6 +11,14 @@
 <meta property="og:image" content="https://froncu.dev/code/hero.png" />
 <meta property="og:url" content="https://froncu.dev/code/" />
 <meta property="og:type" content="profile" />
+<!-- page transition: cover from the first paint until transitions.js takes over (failsafe after 4.5s) -->
+<style>
+html.fx-in::after{content:""; position:fixed; inset:0; z-index:10000; background:#0D0E11; animation:fx-failsafe .3s 4.5s forwards}
+@keyframes fx-failsafe{to{opacity:0; visibility:hidden}}
+</style>
+<noscript><style>html.fx-in::after{display:none}</style></noscript>
+<script>(function(r){if(!matchMedia('(prefers-reduced-motion: reduce)').matches){r.classList.add('fx-in','fx-busy');setTimeout(function(){r.classList.remove('fx-in','fx-busy')},4500)}})(document.documentElement)</script>
+<script src="../transitions.js" defer></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
 <link rel="apple-touch-icon" href="apple-touch-icon.png" />
@@ -296,6 +304,10 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 /* ─── motion (JS only) ───────────────────────────────────────────────── */
 .js .reveal{opacity:0; transform:translateY(12px); transition:opacity .6s ease, transform .6s ease}
 .js .reveal.in{opacity:1; transform:none}
+.js .rise{opacity:0; transform:translateY(18px); animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+.js .rise.d1{animation-delay:.07s} .js .rise.d2{animation-delay:.14s} .js .rise.d3{animation-delay:.22s} .js .rise.d4{animation-delay:.32s}
+@keyframes rise{to{opacity:1; transform:none}}
+.fx-busy .rise{animation-play-state:paused}   /* wait for the page transition */
 
 /* ─── responsive ─────────────────────────────────────────────────────── */
 @media (max-width:1000px){
@@ -333,7 +345,7 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{transition-duration:1ms !important; animation-duration:1ms !important}
-  .js .reveal{opacity:1; transform:none}
+  .js .reveal,.js .rise{opacity:1; transform:none; animation:none}
 }
 </style>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&display=swap" />
@@ -366,18 +378,18 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
   <section class="hero wrap">
     <div class="hero__grid">
       <div>
-        <p class="mono hero__eyebrow">C++ · Engine · Graphics</p>
-        <h1>Jakub Frątczak</h1>
-        <p class="hero__lead"><strong>Graphics engineer.</strong> I build renderers, engines and emulators in modern C++, mostly from scratch.</p>
-        <span class="status"><i aria-hidden="true"></i>Currently at <a class="lnk" href="https://dayiii.com/" target="_blank" rel="noopener">Day III Digital</a></span>
-        <div class="hero__cta">
+        <p class="mono hero__eyebrow rise">C++ · Engine · Graphics</p>
+        <h1 class="rise d1">Jakub Frątczak</h1>
+        <p class="hero__lead rise d2"><strong>Graphics engineer.</strong> I build renderers, engines and emulators in modern C++, mostly from scratch.</p>
+        <span class="status rise d3"><i aria-hidden="true"></i>Currently at <a class="lnk" href="https://dayiii.com/" target="_blank" rel="noopener">Day III Digital</a></span>
+        <div class="hero__cta rise d3">
           <a class="btn btn--ink" href="#work">See the work <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
           <a class="btn" href="resume.pdf" target="_blank" rel="noopener">Résumé <span class="mono" style="font-size:.62rem">PDF</span></a>
           <a class="btn" href="https://github.com/froncu" target="_blank" rel="noopener">GitHub ↗</a>
         </div>
       </div>
 
-      <figure class="fig" style="margin:0">
+      <figure class="fig rise d2" style="margin:0">
         <div class="vp" id="vp">
           <div class="vp__tabs" role="tablist" aria-label="Projects">
             <button class="vp__tab" role="tab" aria-selected="true"  data-i="0">Eruptor</button>
@@ -398,7 +410,7 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
       </figure>
     </div>
 
-    <dl class="spec">
+    <dl class="spec rise d4">
       <div><dt class="mono">Working</dt><dd>Graphics engineer <span>· <a class="lnk" href="https://dayiii.com/" target="_blank" rel="noopener">Day III Digital</a></span></dd></div>
       <div><dt class="mono">Graduated</dt><dd>Digital Arts &amp; Entertainment <span>· Howest, magna cum laude</span></dd></div>
       <div><dt class="mono">On the side</dt><dd>Eruptor <span>(Vulkan PBR)</span> &amp; FroNES <span>(NES emulator)</span></dd></div>
