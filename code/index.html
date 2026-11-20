@@ -126,7 +126,7 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 .spec dd{margin:0; font-size:.94rem; font-weight:500; line-height:1.45}
 .spec dd span{color:var(--ink-3); font-weight:400}
 
-/* ─── figure 1: the live viewport ────────────────────────────────────── */
+/* ─── figure 1: screenshots from my own projects ─────────────────────── */
 .vp{border:1px solid var(--rule-2); border-radius:8px; background:var(--card); overflow:hidden; box-shadow:0 40px 80px -40px rgba(0,0,0,.85)}
 .vp__tabs{display:flex; border-bottom:1px solid var(--rule); overflow-x:auto; scrollbar-width:none}
 .vp__tabs::-webkit-scrollbar{display:none}
@@ -137,21 +137,19 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 }
 .vp__tab:hover{color:var(--ink); background:var(--paper)}
 .vp__tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent)}
-.vp__stage{position:relative; aspect-ratio:16/10; background:#07080A}
-.vp__stage canvas{width:100%; height:100%; display:block}
-.vp__fallback{
-  position:absolute; inset:0; display:none; place-content:center; text-align:center; padding:24px;
-  color:#9AA0AA; font-family:var(--mono); font-size:.7rem; line-height:2;
-}
-.vp.is-fallback .vp__fallback{display:grid}
-.vp.is-fallback .vp__tabs{display:none}
+.vp__stage{position:relative; display:block; aspect-ratio:16/10; background:#07080A; overflow:hidden}
+.vp__stage img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:opacity .3s ease, transform .6s ease}
+.vp__stage img.is-contain{object-fit:contain}
+.vp__stage img.is-out{opacity:0}
+.vp__stage:hover img{transform:scale(1.02)}
 .vp__status{
   display:flex; align-items:center; gap:14px; padding:8px 14px; border-top:1px solid var(--rule);
   font-family:var(--mono); font-size:.64rem; letter-spacing:.04em; color:var(--ink-3); white-space:nowrap; overflow:hidden;
 }
 .vp__status b{color:var(--ink); font-weight:500}
 .vp__spacer{flex:1}
-#perf{display:block; width:100px; height:14px; flex:0 0 auto}
+.vp__status a{color:var(--ink-2); text-decoration:none; transition:color .15s}
+.vp__status a:hover{color:var(--accent)}
 .cap{margin:12px 2px 0; font-size:.86rem; line-height:1.55; color:var(--ink-2); max-width:62ch}
 .cap b{font-family:var(--mono); font-size:.72rem; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--ink); margin-right:6px}
 
@@ -250,6 +248,10 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 .facts .mono{font-size:.64rem; padding-top:3px}
 .facts a{text-decoration:none; border-bottom:1.5px solid #FF3B24}
 .facts a:hover{color:#FF6A55}
+.lnk{color:inherit; text-decoration:none; border-bottom:1.5px solid var(--accent); transition:color .15s, background .15s}
+.lnk:hover{color:var(--ink); background:var(--accent-tint)}
+.facts a.lnk{border-bottom-color:var(--accent)}
+.facts a.lnk:hover{color:var(--ink)}
 .about .prose{margin-top:0}
 .about .prose a{color:var(--ink); text-decoration:none; border-bottom:1.5px solid var(--accent)}
 .about .prose a:hover{background:var(--accent-tint)}
@@ -319,7 +321,6 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
   .spec > div,.tools > div{padding-left:0 !important; border-left:0 !important}
   .spec > div + div,.tools > div + div{border-top:1px solid var(--rule)}
   .vp__status{font-size:.58rem; gap:10px}
-  #perf{width:64px}
   .switch a{padding:0 10px}
 }
 @media (max-width:400px){
@@ -365,7 +366,7 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
         <p class="mono hero__eyebrow">C++ · Engine · Graphics</p>
         <h1>Jakub Frątczak</h1>
         <p class="hero__lead"><strong>Graphics engineer.</strong> I build renderers, engines and emulators in modern C++, mostly from scratch.</p>
-        <span class="status"><i aria-hidden="true"></i>Currently at Day III Digital</span>
+        <span class="status"><i aria-hidden="true"></i>Currently at <a class="lnk" href="https://dayiii.com/" target="_blank" rel="noopener">Day III Digital</a></span>
         <div class="hero__cta">
           <a class="btn btn--ink" href="#work">See the work <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
           <a class="btn" href="resume.pdf" target="_blank" rel="noopener">Résumé <span class="mono" style="font-size:.62rem">PDF</span></a>
@@ -375,31 +376,27 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
 
       <figure class="fig" style="margin:0">
         <div class="vp" id="vp">
-          <div class="vp__tabs" role="tablist" aria-label="Render channel">
-            <button class="vp__tab" role="tab" aria-selected="true"  data-ch="0">Beauty</button>
-            <button class="vp__tab" role="tab" aria-selected="false" data-ch="1">Albedo</button>
-            <button class="vp__tab" role="tab" aria-selected="false" data-ch="2">Normal</button>
-            <button class="vp__tab" role="tab" aria-selected="false" data-ch="3">Depth</button>
-            <button class="vp__tab" role="tab" aria-selected="false" data-ch="4">Roughness</button>
+          <div class="vp__tabs" role="tablist" aria-label="Projects">
+            <button class="vp__tab" role="tab" aria-selected="true"  data-i="0">Eruptor</button>
+            <button class="vp__tab" role="tab" aria-selected="false" data-i="1">Fronge</button>
+            <button class="vp__tab" role="tab" aria-selected="false" data-i="2">FroNES</button>
+            <button class="vp__tab" role="tab" aria-selected="false" data-i="3">NESlides</button>
           </div>
-          <div class="vp__stage">
-            <canvas id="gl" aria-label="Live raymarched render of a metal roughness sweep"></canvas>
-            <div class="vp__fallback"><span>WebGL is unavailable in this browser,<br />so this figure can’t render.<br />Everything else works.</span></div>
-          </div>
+          <a class="vp__stage" id="vpStage" href="#eruptor" role="tabpanel">
+            <img id="vpImg" src="cover.jpg" alt="Sponza rendered in Eruptor, my Vulkan deferred PBR renderer" fetchpriority="high" />
+          </a>
           <div class="vp__status">
-            <span id="res">booting</span>
-            <span>GGX · IBL · ACES</span>
+            <span id="vpMeta"><b>Eruptor</b> · Vulkan · deferred PBR</span>
             <span class="vp__spacer"></span>
-            <span><b id="ms">—</b></span>
-            <canvas id="perf" aria-hidden="true"></canvas>
+            <a id="vpLink" href="#eruptor">Read the write-up ↓</a>
           </div>
         </div>
-        <figcaption class="cap"><b>Fig. 1</b>A metal roughness sweep, raymarched live in your browser with a GGX BRDF and image-based lighting. Switch channels to inspect the G-buffer behind it.</figcaption>
+        <figcaption class="cap"><b>Fig. 1</b>Screenshots from my own projects, all built from scratch. Pick one, or click through to its write-up.</figcaption>
       </figure>
     </div>
 
     <dl class="spec">
-      <div><dt class="mono">Working</dt><dd>Graphics engineer <span>· Day III Digital</span></dd></div>
+      <div><dt class="mono">Working</dt><dd>Graphics engineer <span>· <a class="lnk" href="https://dayiii.com/" target="_blank" rel="noopener">Day III Digital</a></span></dd></div>
       <div><dt class="mono">Graduated</dt><dd>Digital Arts &amp; Entertainment <span>· Howest, magna cum laude</span></dd></div>
       <div><dt class="mono">On the side</dt><dd>Eruptor <span>(Vulkan PBR)</span> &amp; FroNES <span>(NES emulator)</span></dd></div>
       <div><dt class="mono">Based</dt><dd>Belgium <span>· Polish roots</span></dd></div>
@@ -643,7 +640,7 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
       <div>
         <figure class="portrait"><img src="hero.png" alt="Portrait of Jakub Frątczak" loading="lazy" decoding="async" /></figure>
         <ul class="facts">
-          <li><span class="mono">Work</span><span>Graphics engineer, Day III Digital</span></li>
+          <li><span class="mono">Work</span><span>Graphics engineer, <a class="lnk" href="https://dayiii.com/" target="_blank" rel="noopener">Day III Digital</a></span></li>
           <li><span class="mono">Degree</span><span>Digital Arts &amp; Entertainment, Howest. Magna cum laude</span></li>
           <li><span class="mono">Based</span><span>Belgium, with Polish roots</span></li>
           <li><span class="mono">Focus</span><span>Engine, graphics, embedded</span></li>
@@ -653,7 +650,7 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
       </div>
       <div class="prose">
         <p>During my final years of high school, I wasn’t sure what career path to pursue. My interests in mathematics, physics, computers and games naturally led me to <strong>game development</strong>.</p>
-        <p>I began studying at <a href="https://digitalartsandentertainment.be/" target="_blank" rel="noopener"><strong>DAE</strong></a>, where I discovered programming for the first time. We started with <strong>C++</strong>, and I was instantly hooked. I graduated <strong>magna cum laude</strong> and now work as a <strong>graphics engineer at Day III Digital</strong>.</p>
+        <p>I began studying at <a href="https://digitalartsandentertainment.be/" target="_blank" rel="noopener"><strong>DAE</strong></a>, where I discovered programming for the first time. We started with <strong>C++</strong>, and I was instantly hooked. I graduated <strong>magna cum laude</strong> and now work as a <strong>graphics engineer at <a href="https://dayiii.com/" target="_blank" rel="noopener">Day III Digital</a></strong>.</p>
         <p>Since then I’ve become a passionate C++ developer focused on <strong>high-performance code</strong> with a <strong>clean API</strong> and <strong>modern C++ features</strong>. I especially enjoy <strong>engine</strong>, <strong>graphics</strong> and <strong>embedded</strong> programming.</p>
         <p>Born and raised in Belgium with Polish roots, my long-term goal is to <strong>return to Poland</strong> and build my career there.</p>
         <p>Outside of programming I value a healthy lifestyle. I practised <strong>judo</strong> for eight years, winning the <strong>Belgian U21 +100 kg title</strong> in 2022, and I enjoy weightlifting in my free time.</p>
@@ -686,8 +683,8 @@ h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing
     <span class="xlink__go" aria-hidden="true">→</span>
   </a>
   <div class="mono foot__base">
-    <p>© <span id="yr">2026</span> Jakub Frątczak · No frameworks · Fig. 1 renders live in WebGL</p>
-    <p><a href="../">← froncu.dev</a> &nbsp;·&nbsp; <a href="https://x.com/froncu_" target="_blank" rel="noopener">X ↗</a> &nbsp;·&nbsp; <a href="../music/">Music →</a></p>
+    <p>© <span id="yr">2026</span> Jakub Frątczak · Fully AI coded</p>
+    <p><a href="../">← froncu.dev</a> &nbsp;·&nbsp; <a href="../music/">Music →</a></p>
   </div>
 </footer>
 
@@ -725,304 +722,52 @@ document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 })();
 
 /* ══════════════════════════════════════════════════════════════════════
-   3. FIG. 1: THE VIEWPORT — raymarched roughness sweep, switchable G-buffer channels
+   3. FIG. 1: screenshots from my own projects, each linking to its write-up
    ══════════════════════════════════════════════════════════════════════ */
-(function viewport(){
-  const shell  = document.getElementById('vp');
-  const canvas = document.getElementById('gl');
-  const resEl  = document.getElementById('res');
-  const msEl   = document.getElementById('ms');
-  const perf   = document.getElementById('perf');
-  const still  = matchMedia('(prefers-reduced-motion: reduce)').matches;
+(function projectViewer(){
+  const SHOTS = [
+    { img:'cover.jpg',    fit:'cover',   href:'#eruptor', name:'Eruptor',  meta:'Vulkan · deferred PBR',      alt:'Sponza rendered in Eruptor, my Vulkan deferred PBR renderer' },
+    { img:'fronge.png',   fit:'cover',   href:'#fronge',  name:'Fronge',   meta:'C++23 · ECS · 2D physics',   alt:'The Sandbox project running on my Fronge engine' },
+    { img:'nes.png',      fit:'contain', href:'#frones',  name:'FroNES',   meta:'C++23 coroutines · 6502',    alt:'The FroNES emulator debugger' },
+    { img:'neslides.png', fit:'contain', href:'#more',    name:'NESlides', meta:'6502 assembly · NES',        alt:'NESlides running on the NES' }
+  ];
+  const tabs = Array.prototype.slice.call(document.querySelectorAll('#vp .vp__tab'));
+  const img = document.getElementById('vpImg'), stage = document.getElementById('vpStage');
+  const meta = document.getElementById('vpMeta'), link = document.getElementById('vpLink');
+  let current = 0, timer = 0;
 
-  function bail(msg){ shell.classList.add('is-fallback'); resEl.textContent = msg; msEl.textContent = '—'; }
-
-  const opts = { antialias:false, alpha:false, depth:false, powerPreference:'high-performance' };
-  const gl = canvas.getContext('webgl', opts) || canvas.getContext('experimental-webgl', opts);
-  if (!gl){ bail('no webgl'); return; }
-
-  const VERT = 'attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }';
-
-  const FRAG = [
-  '#ifdef GL_FRAGMENT_PRECISION_HIGH',
-  'precision highp float;',
-  '#else',
-  'precision mediump float;',
-  '#endif',
-  'uniform vec2  uRes;',
-  'uniform float uTime;',
-  'uniform int   uChan;            // 0 beauty · 1 albedo · 2 normal · 3 depth · 4 roughness',
-  'const float PI = 3.141592653589793;',
-
-  /* scene: five metal spheres, roughness swept left to right, on a grid floor */
-  'vec2 map(vec3 p){',
-  '  float d = p.y; float id = 0.0;',
-  '  for (int i = 0; i < 5; i++){',
-  '    float fi = float(i);',
-  '    float ds = length(p - vec3((fi - 2.0) * 1.5, 0.55, 0.0)) - 0.55;',
-  '    if (ds < d){ d = ds; id = fi + 1.0; }',
-  '  }',
-  '  return vec2(d, id);',
-  '}',
-
-  'vec3 normalAt(vec3 p){',
-  '  vec2 e = vec2(1.0, -1.0) * 0.0016;',
-  '  return normalize(e.xyy * map(p + e.xyy).x + e.yyx * map(p + e.yyx).x',
-  '                 + e.yxy * map(p + e.yxy).x + e.xxx * map(p + e.xxx).x);',
-  '}',
-
-  'vec2 trace(vec3 ro, vec3 rd){',
-  '  float t = 0.02, id = -1.0;',
-  '  for (int i = 0; i < 88; i++){',
-  '    vec2 h = map(ro + rd * t);',
-  '    if (h.x < max(0.0013 * t, 0.0006)){ id = h.y; break; }',
-  '    t += h.x;',
-  '    if (t > 34.0) break;',
-  '  }',
-  '  if (t > 34.0) id = -1.0;',
-  '  return vec2(t, id);',
-  '}',
-
-  'float shadow(vec3 ro, vec3 rd){',
-  '  float res = 1.0, t = 0.06;',
-  '  for (int i = 0; i < 24; i++){',
-  '    float h = map(ro + rd * t).x;',
-  '    res = min(res, 10.0 * h / t);',
-  '    t += clamp(h, 0.035, 0.6);',
-  '    if (res < 0.004 || t > 13.0) break;',
-  '  }',
-  '  return clamp(res, 0.0, 1.0);',
-  '}',
-
-  'float occlusion(vec3 p, vec3 n){',
-  '  float occ = 0.0, sca = 1.0;',
-  '  for (int i = 0; i < 5; i++){',
-  '    float h = 0.015 + 0.13 * float(i) / 4.0;',
-  '    occ += (h - map(p + n * h).x) * sca;',
-  '    sca *= 0.82;',
-  '  }',
-  '  return clamp(1.0 - 1.5 * occ, 0.0, 1.0);',
-  '}',
-
-  /* studio-ish environment: warm key, lavender rim, horizon glow, dim floor */
-  'vec3 envMap(vec3 d){',
-  '  vec3 sky = mix(vec3(0.017,0.019,0.028), vec3(0.042,0.047,0.068), pow(clamp(d.y,0.0,1.0), 0.85));',
-  '  vec3 grd = mix(vec3(0.016,0.017,0.021), vec3(0.006,0.006,0.009), pow(clamp(-d.y,0.0,1.0), 0.6));',
-  '  vec3 c = mix(grd, sky, step(0.0, d.y));',
-  '  c += vec3(0.085,0.090,0.120) * exp(-abs(d.y) * 13.0) * 0.55;',
-  '  float k = max(dot(d, normalize(vec3( 0.50, 0.60,  0.55))), 0.0);',
-  '  c += vec3(1.00,0.90,0.74) * (pow(k, 140.0) * 14.0 + pow(k, 7.0) * 0.42);',
-  '  c += vec3(0.42,0.42,1.00) * pow(max(dot(d, normalize(vec3(-0.75, 0.26, -0.45))), 0.0), 16.0) * 1.35;',
-  '  return c;',
-  '}',
-  'vec3 envDull(vec3 n){',
-  '  vec3 c = mix(vec3(0.013,0.014,0.019), vec3(0.040,0.044,0.060), n.y * 0.5 + 0.5);',
-  '  c += vec3(0.42,0.39,0.33) * max(dot(n, normalize(vec3( 0.50, 0.60,  0.55))), 0.0) * 0.34;',
-  '  c += vec3(0.16,0.16,0.34) * max(dot(n, normalize(vec3(-0.75, 0.26, -0.45))), 0.0) * 0.30;',
-  '  return c;',
-  '}',
-
-  /* GGX BRDF */
-  'float D_GGX(float NoH, float a){ float a2 = a*a; float d = NoH*NoH*(a2-1.0)+1.0; return a2/(PI*d*d); }',
-  'float V_Smith(float NoV, float NoL, float a){',
-  '  float a2 = a*a;',
-  '  float gv = NoL * sqrt(NoV*NoV*(1.0-a2)+a2);',
-  '  float gl = NoV * sqrt(NoL*NoL*(1.0-a2)+a2);',
-  '  return 0.5 / max(gv + gl, 1e-5);',
-  '}',
-  'vec3 F_Schlick(float u, vec3 f0){ return f0 + (vec3(1.0)-f0) * pow(1.0-u, 5.0); }',
-  'vec3 aces(vec3 x){ return clamp((x*(2.51*x+0.03))/(x*(2.43*x+0.59)+0.14), 0.0, 1.0); }',
-
-  'void main(){',
-  '  vec2 uv = (gl_FragCoord.xy * 2.0 - uRes) / uRes.y;',
-  '  float ang = 0.30 + sin(uTime * 0.11) * 0.42;',
-  '  vec3 ro = vec3(sin(ang) * 8.0, 2.10 + sin(uTime * 0.17) * 0.22, cos(ang) * 8.0);',
-  '  vec3 ta = vec3(0.0, 0.64, 0.0);',
-  '  vec3 w = normalize(ta - ro), u = normalize(cross(w, vec3(0.0,1.0,0.0))), v = cross(u, w);',
-  '  vec3 rd = normalize(uv.x * u + uv.y * v + 2.6 * w);',
-
-  '  vec2 hit = trace(ro, rd);',
-  '  float t = hit.x;',
-  '  float id = hit.y;',
-
-  /* miss: per-channel clear values, like a real G-buffer */
-  '  if (id < 0.0){',
-  '    if (uChan == 0){ gl_FragColor = vec4(pow(aces(envMap(rd)), vec3(1.0/2.2)), 1.0); }',
-  '    else if (uChan == 2){ gl_FragColor = vec4(0.5, 0.5, 1.0, 1.0); }',
-  '    else { gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0); }',
-  '    return;',
-  '  }',
-
-  '  vec3 p = ro + rd * t;',
-  '  vec3 n = normalAt(p);',
-
-  '  vec3 albedo; float rough; float metal;',
-  '  if (id < 0.5){',
-  '    vec2 g = abs(fract(p.xz * 0.5) - 0.5);',
-  '    float line = 1.0 - smoothstep(0.0, 0.030, min(g.x, g.y));',
-  '    albedo = mix(vec3(0.072,0.077,0.091), vec3(0.235,0.245,0.30), line);',
-  '    rough = 0.40; metal = 0.0;',
-  '  } else {',
-  '    float k = (id - 1.0) / 4.0;',
-  '    albedo = mix(vec3(0.93,0.66,0.47), vec3(0.66,0.72,0.87), k);',
-  '    rough = mix(0.055, 0.80, k);',
-  '    metal = 1.0;',
-  '  }',
-
-  /* raw channel views */
-  '  if (uChan == 1){ gl_FragColor = vec4(albedo, 1.0); return; }',
-  '  if (uChan == 2){ gl_FragColor = vec4(n * 0.5 + 0.5, 1.0); return; }',
-  '  if (uChan == 3){ gl_FragColor = vec4(vec3(exp(-t * 0.085)), 1.0); return; }',
-  '  if (uChan == 4){ gl_FragColor = vec4(vec3(rough), 1.0); return; }',
-
-  /* beauty */
-  '  vec3 alb = pow(albedo, vec3(2.2));',
-  '  vec3 V = -rd;',
-  '  float NoV = max(dot(n, V), 1e-4);',
-  '  float a = max(rough * rough, 0.0025);',
-  '  vec3 F0 = mix(vec3(0.04), alb, metal);',
-  '  float ao = occlusion(p, n);',
-
-  '  vec3 L = normalize(vec3(0.50, 0.60, 0.55));',
-  '  float NoL = max(dot(n, L), 0.0);',
-  '  vec3 H = normalize(L + V);',
-  '  float sh = shadow(p + n * 0.014, L);',
-  '  vec3 rad = vec3(1.00, 0.93, 0.80) * 3.7 * NoL * sh;',
-  '  vec3 Fd = F_Schlick(max(dot(V, H), 0.0), F0);',
-  '  vec3 spec = Fd * D_GGX(max(dot(n, H), 0.0), a) * V_Smith(NoV, NoL, a);',
-  '  vec3 diff = alb * (1.0 - metal) * (1.0 - Fd) / PI;',
-  '  vec3 col = (diff + spec) * rad;',
-
-  '  vec3 R = reflect(rd, n);',
-  '  vec3 pref = mix(envMap(R), envDull(n), rough * rough);',
-  '  vec3 kS = F0 + (max(vec3(1.0 - rough), F0) - F0) * pow(1.0 - NoV, 5.0);',
-  '  col += pref * kS * ao;',
-  '  col += alb * (1.0 - metal) * envDull(n) * ao * (1.0 - kS);',
-
-  '  col = mix(col, envMap(rd), 1.0 - exp(-0.0009 * t * t));',
-  '  col *= 1.0 - 0.22 * pow(length(uv * vec2(0.46, 0.62)), 2.4);',
-  '  gl_FragColor = vec4(pow(aces(col * 1.16), vec3(1.0/2.2)), 1.0);',
-  '}'
-  ].join('\n');
-
-  function compile(type, src){
-    const s = gl.createShader(type);
-    gl.shaderSource(s, src); gl.compileShader(s);
-    if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)){ console.error(gl.getShaderInfoLog(s)); return null; }
-    return s;
-  }
-  const vs = compile(gl.VERTEX_SHADER, VERT), fs = compile(gl.FRAGMENT_SHADER, FRAG);
-  if (!vs || !fs){ bail('shader error'); return; }
-
-  const prog = gl.createProgram();
-  gl.attachShader(prog, vs); gl.attachShader(prog, fs); gl.linkProgram(prog);
-  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)){ bail('link error'); return; }
-  gl.useProgram(prog);
-
-  const buf = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
-  const aPos = gl.getAttribLocation(prog, 'p');
-  gl.enableVertexAttribArray(aPos);
-  gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, 0, 0);
-
-  const uRes  = gl.getUniformLocation(prog, 'uRes');
-  const uTime = gl.getUniformLocation(prog, 'uTime');
-  const uChan = gl.getUniformLocation(prog, 'uChan');
-
-  let channel = 0;
-  let scale = Math.min(window.devicePixelRatio || 1, 2);
-  let needsResize = true;
-
-  function applySize(){
-    const r = canvas.getBoundingClientRect();
-    const w = Math.max(1, Math.round(r.width * scale));
-    const h = Math.max(1, Math.round(r.height * scale));
-    if (canvas.width !== w || canvas.height !== h){
-      canvas.width = w; canvas.height = h;
-      gl.viewport(0, 0, w, h);
-      resEl.textContent = w + '×' + h;
-    }
-    needsResize = false;
+  function show(i){
+    if (i === current) return;
+    current = i;
+    const s = SHOTS[i];
+    tabs.forEach((t, k) => { t.setAttribute('aria-selected', String(k === i)); t.tabIndex = k === i ? 0 : -1; });
+    stage.href = link.href = s.href;
+    meta.innerHTML = '<b>' + s.name + '</b> · ' + s.meta;
+    img.classList.add('is-out');
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      img.onload = () => img.classList.remove('is-out');
+      img.className = s.fit === 'contain' ? 'is-contain is-out' : 'is-out';
+      img.alt = s.alt;
+      img.src = s.img;
+      if (img.complete) img.classList.remove('is-out');
+    }, 180);
   }
 
-  function draw(timeSec){
-    if (needsResize) applySize();
-    gl.uniform2f(uRes, canvas.width, canvas.height);
-    gl.uniform1f(uTime, timeSec);
-    gl.uniform1i(uChan, channel);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-  }
-
-  new ResizeObserver(() => { needsResize = true; if (still) draw(6.0); }).observe(canvas);
-
-  /* frame-time readout + sparkline */
-  const pctx = perf.getContext('2d');
-  const hist = new Array(48).fill(16.7);
-  let avg = 16.7, last = 0, acc = 0;
-
-  function sparkline(){
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    const w = perf.clientWidth || 104, h = perf.clientHeight || 15;
-    if (perf.width !== Math.round(w * dpr)){ perf.width = Math.round(w * dpr); perf.height = Math.round(h * dpr); }
-    pctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    pctx.clearRect(0, 0, w, h);
-    const bw = w / hist.length;
-    for (let i = 0; i < hist.length; i++){
-      const bh = Math.max(1, Math.min(hist[i] / 33.3, 1) * h);
-      pctx.fillStyle = i === hist.length - 1 ? '#8C8CFF' : '#30343C';
-      pctx.fillRect(i * bw, h - bh, Math.max(1, bw - 1), bh);
-    }
-  }
-
-  let onScreen = false, awake = !document.hidden, looping = false;
-  const live = () => onScreen && awake;
-
-  function frame(now){
-    if (!live() || still){ looping = false; return; }
-    const dt = last ? now - last : 16.7;
-    last = now;
-
-    draw(now * 0.001);
-
-    avg += (dt - avg) * 0.09;
-    hist.push(dt); hist.shift();
-    acc += dt;
-    if (acc > 200){ acc = 0; msEl.textContent = avg.toFixed(1) + ' ms'; sparkline(); }
-    if (avg > 34 && scale > 0.7){ scale = Math.max(0.7, scale - 0.25); needsResize = true; }
-
-    requestAnimationFrame(frame);
-  }
-
-  function kick(){
-    if (still){ msEl.textContent = 'motion paused'; draw(6.0); return; }
-    if (live() && !looping){ looping = true; last = 0; requestAnimationFrame(frame); }
-  }
-
-  new IntersectionObserver(es => { onScreen = es[0].isIntersecting; kick(); },
-                           { threshold: 0.01 }).observe(canvas);
-
-  document.addEventListener('visibilitychange', () => { awake = !document.hidden; kick(); });
-
-  /* channel tabs */
-  const tabs = Array.prototype.slice.call(shell.querySelectorAll('.vp__tab'));
   tabs.forEach((tab, i) => {
-    tab.addEventListener('click', () => {
-      channel = +tab.dataset.ch;
-      tabs.forEach(t => t.setAttribute('aria-selected', String(t === tab)));
-      if (still) draw(6.0);
-    });
+    tab.tabIndex = i === 0 ? 0 : -1;
+    tab.addEventListener('click', () => show(i));
     tab.addEventListener('keydown', e => {
       const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
       if (!d) return;
       e.preventDefault();
-      const nt = tabs[(i + d + tabs.length) % tabs.length];
-      nt.focus(); nt.click();
+      const n = (i + d + tabs.length) % tabs.length;
+      tabs[n].focus(); show(n);
     });
   });
 
-  applySize();
-  if (still){ msEl.textContent = 'motion paused'; draw(6.0); }
+  /* warm the cache once the page has settled, so switching is instant */
+  addEventListener('load', () => setTimeout(() => SHOTS.slice(1).forEach(s => { new Image().src = s.img; }), 600));
 })();
 </script>
 </body>
