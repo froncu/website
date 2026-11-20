@@ -334,7 +334,9 @@ body::after{
 
 /* ─── videos ─────────────────────────────────────────────────────────── */
 .videos{display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap:clamp(20px,2.6vw,32px)}
-.vid{position:relative; display:block; width:100%; aspect-ratio:16/9; overflow:hidden; background:var(--ink-3); border-radius:4px; text-align:left}
+/* the box holds either the thumbnail button or, once played, the bare YouTube player */
+.vidbox{position:relative; aspect-ratio:16/9; overflow:hidden; background:var(--ink-3); border-radius:4px}
+.vid{position:absolute; inset:0; display:block; width:100%; height:100%; overflow:hidden; text-align:left}
 .vid img{width:100%; height:100%; object-fit:cover; filter:grayscale(.35) contrast(1.05); transition:transform .6s cubic-bezier(.2,.7,.2,1), filter .3s}
 .vid:hover img{transform:scale(1.04); filter:none}
 .vid::after{content:""; position:absolute; inset:0; background:linear-gradient(0deg, rgba(11,9,8,.85), rgba(11,9,8,0) 55%)}
@@ -345,7 +347,7 @@ body::after{
 .vid__play svg{width:22px; height:22px; margin-left:4px; fill:var(--red-ink)}
 .vid:hover .vid__play{transform:scale(1.08)}
 .vid__title{position:absolute; left:20px; right:20px; bottom:16px; z-index:1; font-family:var(--display); font-size:clamp(1.3rem,2.2vw,1.8rem); line-height:1.05; text-transform:uppercase}
-.vid iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
+.vidbox iframe{position:absolute; inset:0; width:100%; height:100%; border:0}
 
 /* ─── about ──────────────────────────────────────────────────────────── */
 .about{border-top:1px solid var(--line)}
@@ -808,16 +810,18 @@ function renderVideos(){
   if (!VIDEOS.length) return;
   const grid = $('videoGrid');
   grid.innerHTML = VIDEOS.map((v, i) =>
-    '<button class="vid" data-i="' + i + '" aria-label="Play ' + esc(v.title) + '">'
+    '<div class="vidbox"><button class="vid" data-i="' + i + '" aria-label="Play ' + esc(v.title) + '">'
     + '<img src="https://i.ytimg.com/vi/' + encodeURIComponent(v.youtube) + '/hqdefault.jpg" alt="" loading="lazy" />'
     + '<span class="vid__play" aria-hidden="true"><svg viewBox="0 0 10 12"><path d="M0 0l10 6-10 6z"/></svg></span>'
-    + '<span class="vid__title">' + esc(v.title) + '</span></button>').join('');
+    + '<span class="vid__title">' + esc(v.title) + '</span></button></div>').join('');
   grid.addEventListener('click', e => {
     const b = e.target.closest('.vid');
-    if (!b || b.querySelector('iframe')) return;
+    if (!b) return;
     const v = VIDEOS[+b.dataset.i];
-    b.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.youtube) + '?autoplay=1&rel=0" title="' + esc(v.title)
-                + '" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
+    /* swap the whole button out for the player: an iframe inside a <button>
+       (or under its overlay) never receives the mouse */
+    b.parentElement.innerHTML = '<iframe src="https://www.youtube-nocookie.com/embed/' + encodeURIComponent(v.youtube) + '?autoplay=1&rel=0" title="' + esc(v.title)
+      + '" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>';
   });
 }
 
