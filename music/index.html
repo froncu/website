@@ -213,7 +213,7 @@ body::after{
 .record:hover .record__sleeve{transform:rotate(-3.5deg) translateX(-2%)}
 
 .disc{position:absolute; inset:0; border-radius:50%; animation:spin 4.2s linear infinite; animation-play-state:paused}
-.record.is-spinning .disc,.rel:hover .disc,.rel:focus-visible .disc{animation-play-state:running}
+.record.is-spinning .disc,.rel:hover .disc,.rel:focus-within .disc{animation-play-state:running}
 .disc{
   background:
     radial-gradient(circle, transparent 0 31%, #080808 31% 32.5%, transparent 32.5%),
@@ -272,7 +272,17 @@ body::after{
 
 /* ─── discography ────────────────────────────────────────────────────── */
 .releases{display:grid; grid-template-columns:repeat(auto-fill, minmax(min(100%, 240px), 1fr)); gap:clamp(36px,4vw,56px) clamp(20px,2.6vw,36px)}
-.rel{display:block; text-decoration:none; min-width:0}
+.rel{display:block; min-width:0}
+.rel__art{display:block; text-decoration:none}
+.rel__meta h3 a{text-decoration:none}
+.rel__by{margin:0; font-size:.86rem; color:var(--bone-2)}
+.rel__links{display:flex; flex-wrap:wrap; gap:5px; margin:6px 0 0; padding:0; list-style:none}
+.rel__links a{
+  display:inline-flex; align-items:center; height:26px; padding:0 9px; border-radius:999px;
+  border:1px solid var(--line-2); font-size:.6rem; font-weight:800; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--bone-2); text-decoration:none; transition:background .2s, color .2s, border-color .2s;
+}
+.rel__links a:hover,.rel__links a:focus-visible{background:var(--red); border-color:var(--red); color:var(--red-ink)}
 .rel__art{position:relative; aspect-ratio:1.2/1}
 .rel__cover{
   position:absolute; left:0; top:0; z-index:2; width:83.3%; aspect-ratio:1; overflow:hidden;
@@ -284,8 +294,8 @@ body::after{
   position:absolute; left:2.5%; top:2.5%; z-index:1; width:78.3%; aspect-ratio:1;
   transform:translateX(13%); transition:transform .6s cubic-bezier(.2,.7,.2,1);
 }
-.rel:hover .rel__slide,.rel:focus-visible .rel__slide{transform:translateX(24%)}
-.rel:hover .rel__cover,.rel:focus-visible .rel__cover{transform:translateY(-4px) rotate(-1.5deg)}
+.rel:hover .rel__slide,.rel:focus-within .rel__slide{transform:translateX(24%)}
+.rel:hover .rel__cover,.rel:focus-within .rel__cover{transform:translateY(-4px) rotate(-1.5deg)}
 .rel__meta{margin-top:18px; display:grid; gap:6px}
 .rel__meta h3{
   margin:0; font-family:var(--display); font-weight:400; text-transform:uppercase;
@@ -422,6 +432,11 @@ body::after{
   .other{grid-template-columns:1fr auto}
   .other__tag{grid-column:1 / -1}
   .facts li{grid-template-columns:1fr; gap:2px}
+  .releases{grid-template-columns:repeat(2, minmax(0,1fr)); gap:32px 14px}
+  .rel__meta{margin-top:12px}
+  .rel__meta h3{font-size:1.2rem}
+  .rel__meta .kicker{font-size:.58rem; letter-spacing:.1em; flex-wrap:wrap; gap:4px}
+  .rel__links a{height:24px; padding:0 7px; font-size:.54rem}
 }
 @media (max-width:380px){
   .mark{font-size:1.2rem}
@@ -503,7 +518,7 @@ body::after{
     <div class="wrap reveal">
       <div class="head">
         <h2>Discography<sup id="relCount"></sup></h2>
-        <p class="head__aside">Singles, EPs &amp; tapes — newest first.</p>
+        <p class="head__aside">Every single, newest first. Features at the end.</p>
       </div>
       <div class="releases" id="releaseGrid"></div>
       <noscript><p style="color:var(--bone-2)">The discography needs JavaScript. Everything is also on <a href="https://www.instagram.com/yungfroncu/">Instagram</a>.</p></noscript>
@@ -533,6 +548,7 @@ body::after{
           <li><span class="kicker">Artist name</span><span>Froncu</span></li>
           <li><span class="kicker">Based</span><span>Belgium</span></li>
           <li><span class="kicker">Roots</span><span>Poland</span></li>
+          <li><span class="kicker">Raps in</span><span>Polish</span></li>
           <li><span class="kicker">Day job</span><span><a href="../code/">Graphics engineer</a></span></li>
         </ul>
       </div>
@@ -582,18 +598,19 @@ document.documentElement.classList.add('js');
    1. YOUR MUSIC — this block is the only part you need to edit.
    ══════════════════════════════════════════════════════════════════════ */
 
-/* Artist-wide links. The "listen" list shows one row per platform that has a
-   link. Swap these search URLs for your real artist profile URLs; delete a
-   line to hide that platform. */
+/* Artist profiles, one per platform. Used for the "listen" list when the
+   featured release has no link of its own there, and in the footer. */
 const PROFILES = {
-  spotify:    'https://open.spotify.com/search/froncu',
-  appleMusic: 'https://music.apple.com/search?term=froncu',
-  youtube:    'https://www.youtube.com/results?search_query=froncu',
-  soundcloud: 'https://soundcloud.com/search?q=froncu'
+  spotify:    'https://open.spotify.com/artist/5By610LZahnvEow5zBluZN',
+  appleMusic: 'https://music.apple.com/us/artist/froncu/1590689964',
+  youtube:    'https://www.youtube.com/@froncu',
+  deezer:     'https://www.deezer.com/artist/81716402',
+  soundcloud: 'https://soundcloud.com/user-623605043'
 };
 
 const SOCIALS = [
   { label:'Instagram', href:'https://www.instagram.com/yungfroncu/' },
+  { label:'TikTok',    href:'https://www.tiktok.com/@froncu' },
   { label:'X',         href:'https://x.com/froncu_' },
   { label:'Facebook',  href:'https://www.facebook.com/yungfroncu/' }
 ];
@@ -601,35 +618,95 @@ const SOCIALS = [
 const EMAIL = '';   // e.g. 'bookings@example.com'; leave empty to hide
 
 /* Releases, newest first. The first one is featured as "Latest release".
-   - type:  'Single' | 'EP' | 'Album' | 'Mixtape' | anything
-   - date:  'YYYY-MM' or 'YYYY'
-   - cover: image path next to this file (e.g. 'covers/my-single.jpg').
-            Leave '' and a typographic cover is generated in the site's style.
-   - links: per-release links; any platform left out falls back to PROFILES.
-            A Spotify track/album link also adds an embedded player.
-   PLACEHOLDERS below: replace them with your real releases. */
+   - type:  'Single' | 'EP' | 'Album' | 'Feature' | anything
+   - date:  'YYYY-MM-DD', 'YYYY-MM' or 'YYYY'
+   - by:    optional credit line (features, guests)
+   - cover: image next to this file. Leave '' to generate one in the site's style.
+   - links: where this release lives on each platform. The first one is where a
+            click on the cover goes; a Spotify track link adds a player when featured. */
 const RELEASES = [
-  { title:'Single Title',  type:'Single',  date:'2026-11', cover:'', links:{} },
-  { title:'EP Title',      type:'EP',      date:'2026-04', cover:'', links:{} },
-  { title:'Mixtape Title', type:'Mixtape', date:'2025-10', cover:'', links:{} },
-  { title:'First Single',  type:'Single',  date:'2025-03', cover:'', links:{} }
+  { title:'DAE Anthem', type:'Single', date:'2023-02-16', cover:'covers/dae-anthem.jpg',
+    links:{ spotify:'https://open.spotify.com/track/7iSzQSsRJTC6htuxgiPR65',
+      appleMusic:'https://music.apple.com/us/album/dae-anthem-single/1672249476',
+      youtube:'https://www.youtube.com/watch?v=N260wtuPOgc',
+      deezer:'https://www.deezer.com/album/408228817' } },
+  { title:'O2', type:'Single', date:'2022-06-25', cover:'covers/o2.jpg',
+    links:{ spotify:'https://open.spotify.com/track/1obKyoB8fyUAV7MHZ92miG',
+      appleMusic:'https://music.apple.com/us/album/o2-single/1631692185',
+      youtube:'https://www.youtube.com/watch?v=DD2qiiyrQnA' } },
+  { title:'Mexicano', type:'Single', date:'2022-05-18', cover:'covers/mexicano.jpg',
+    links:{ spotify:'https://open.spotify.com/track/2JUfUfqxFlnLwaWS5uDNTC',
+      appleMusic:'https://music.apple.com/us/album/mexicano-single/1622972691',
+      youtube:'https://www.youtube.com/watch?v=l5CoDoSogz0' } },
+  { title:'Setki wiadomości', by:'feat. Ksentaks', type:'Single', date:'2022-03-23', cover:'covers/setki-wiadomosci.jpg',
+    links:{ appleMusic:'https://music.apple.com/us/album/setki-wiadomo%C5%9Bci-feat-ksentaks-single/1610556772',
+      youtube:'https://www.youtube.com/watch?v=aBJv_XpZwuI' } },
+  { title:'#3FlowChallenge', type:'Single', date:'2022-02-23', cover:'covers/3flowchallenge.jpg',
+    links:{ appleMusic:'https://music.apple.com/us/album/3flowchallenge-single/1608652887',
+      youtube:'https://www.youtube.com/watch?v=T4He7kTOunk' } },
+  { title:'Ciągle Papier', type:'Single', date:'2022-01-28', cover:'covers/ciagle-papier.jpg',
+    links:{ spotify:'https://open.spotify.com/track/6u5XYVPHHJ7OARyxgXZwzx',
+      appleMusic:'https://music.apple.com/us/album/ci%C4%85gle-papier-single/1605784533',
+      youtube:'https://www.youtube.com/watch?v=n8GmmBLvI4o',
+      deezer:'https://www.deezer.com/album/288447662' } },
+  { title:'soundcloudowa era', type:'Single', date:'2021-12-31', cover:'covers/soundcloudowa-era.jpg',
+    links:{ spotify:'https://open.spotify.com/track/0M0xpu9FgNFwEcQDmYwVjA',
+      appleMusic:'https://music.apple.com/us/album/soundcloudowa-era-single/1598824394',
+      youtube:'https://www.youtube.com/watch?v=T8VUVg35zrA' } },
+  { title:'Kolejny Ruch', type:'Single', date:'2021-12-17', cover:'covers/kolejny-ruch.jpg',
+    links:{ spotify:'https://open.spotify.com/track/6xQKhW071yg1p3m9fy7APn',
+      appleMusic:'https://music.apple.com/us/album/kolejny-ruch-single/1597598782',
+      youtube:'https://www.youtube.com/watch?v=cXeeJHrLKNQ' } },
+  { title:'ja nie chce', type:'Single', date:'2021-12-03', cover:'covers/ja-nie-chce.jpg',
+    links:{ appleMusic:'https://music.apple.com/us/album/ja-nie-chce-single/1597801681',
+      youtube:'https://www.youtube.com/watch?v=W0mZobIZsYY',
+      deezer:'https://www.deezer.com/album/276312422' } },
+  { title:'Hymn Ludzi Melanżu', type:'Single', date:'2021-11-05', cover:'covers/hymn-ludzi-melanzu.jpg',
+    links:{ spotify:'https://open.spotify.com/track/2RKItrf5cdFgwuQIga3MOz',
+      appleMusic:'https://music.apple.com/us/album/hymn-ludzi-melan%C5%BCu-single/1591959429',
+      youtube:'https://www.youtube.com/watch?v=ikFWcPj509U',
+      deezer:'https://www.deezer.com/album/268043672' } },
+  { title:'Co ci znowu nagadali?', type:'Single', date:'2021-10-29', cover:'covers/co-ci-znowu-nagadali.jpg',
+    links:{ spotify:'https://open.spotify.com/track/2jnndBTAb3c5ItEssLbWS7',
+      appleMusic:'https://music.apple.com/us/album/co-ci-znowu-nagadali-single/1591283853',
+      youtube:'https://www.youtube.com/watch?v=bYCaA2RUilw' } },
+  { title:'SAM', type:'Single', date:'2021-10-25', cover:'covers/sam.jpg',
+    links:{ spotify:'https://open.spotify.com/track/1zImp5bchCVrBHixz08Fcn',
+      appleMusic:'https://music.apple.com/us/album/sam-single/1591264949',
+      youtube:'https://www.youtube.com/watch?v=HUS7fdaUhXQ' } },
+  { title:'Nie Ma Opcji.', type:'Single', date:'2021-10-20', cover:'covers/nie-ma-opcji.jpg',
+    links:{ spotify:'https://open.spotify.com/track/7vh0xdXhjZRK1wUjBpnR5D',
+      appleMusic:'https://music.apple.com/us/album/nie-ma-opcji-single/1591291339',
+      youtube:'https://www.youtube.com/watch?v=GWg-q11M030' } },
+  { title:'znowu żałowałem', type:'Single', date:'2021-10-16', cover:'covers/znowu-zalowalem.jpg',
+    links:{ appleMusic:'https://music.apple.com/us/album/znowu-%C5%BCa%C5%82owa%C5%82em-single/1590693898',
+      youtube:'https://www.youtube.com/watch?v=06wNQaFxT2A' } },
+  /* features on other artists' tracks */
+  { title:'na spontanie 2.', by:'Heavy520 feat. Froncu, Gaje$ & Cinolek', type:'Feature', date:'2021-11-12', cover:'covers/na-spontanie-2.jpg',
+    links:{ appleMusic:'https://music.apple.com/us/album/na-spontanie-2-feat-froncu-gaje%24-cinolek-single/1594146979' } },
+  { title:'na spontanie.', by:'Heavy520 feat. Froncu, Gaje$ & Cinek', type:'Feature', date:'2021-10-30', cover:'covers/na-spontanie.jpg',
+    links:{ appleMusic:'https://music.apple.com/us/album/na-spontanie-feat-froncu-gaje%24-cinek-single/1594245881' } }
 ];
 
-/* Music videos. `youtube` is the video id: the part after "watch?v=".
-   The section and its nav link stay hidden while this list is empty.
-   e.g. { title:'Single Title (Official Video)', youtube:'xxxxxxxxxxx' } */
-const VIDEOS = [];
+/* Videos. `youtube` is the video id: the part after "watch?v=".
+   The section and its nav link hide themselves while this list is empty. */
+const VIDEOS = [
+  { title:'DAE Anthem (AMV)',                  youtube:'N260wtuPOgc' },
+  { title:'Hymn Ludzi Melanżu (Music Video)',  youtube:'ikFWcPj509U' },
+  { title:'O2 (AMV)',                          youtube:'DD2qiiyrQnA' },
+  { title:'Hymn Ludzi Melanżu: the making of', youtube:'0Od7gA0TmTs' }
+];
 
 /* ══════════════════════════════════════════════════════════════════════
    2. RENDERING
    ══════════════════════════════════════════════════════════════════════ */
 const PLATFORMS = [
-  { key:'spotify',    name:'Spotify',     verb:'Stream' },
-  { key:'appleMusic', name:'Apple Music', verb:'Stream' },
-  { key:'youtube',    name:'YouTube',     verb:'Watch'  },
-  { key:'soundcloud', name:'SoundCloud',  verb:'Stream' },
-  { key:'tidal',      name:'Tidal',       verb:'Stream' },
-  { key:'deezer',     name:'Deezer',      verb:'Stream' }
+  { key:'spotify',    name:'Spotify',     short:'Spotify', verb:'Stream' },
+  { key:'appleMusic', name:'Apple Music', short:'Apple',   verb:'Stream' },
+  { key:'youtube',    name:'YouTube',     short:'YouTube', verb:'Watch'  },
+  { key:'deezer',     name:'Deezer',      short:'Deezer',  verb:'Stream' },
+  { key:'soundcloud', name:'SoundCloud',  short:'SoundCloud', verb:'Stream' },
+  { key:'tidal',      name:'Tidal',       short:'Tidal',   verb:'Stream' }
 ];
 const COVER_STYLES = ['red', 'bone', 'ink'];
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
@@ -638,14 +715,18 @@ const STAR = '<svg viewBox="0 0 20 20" aria-hidden="true"><path fill="currentCol
 
 const $ = id => document.getElementById(id);
 const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
-const fmtDate = d => { const p = String(d).split('-'); return p[1] ? MONTHS[+p[1] - 1] + ' ' + p[0] : p[0]; };
+const fmtDate = d => { const p = String(d).split('-'); return (p[2] ? +p[2] + ' ' : '') + (p[1] ? MONTHS[+p[1] - 1] + ' ' : '') + p[0]; };
+const fmtMonth = d => { const p = String(d).split('-'); return (p[1] ? MONTHS[+p[1] - 1] + ' ' : '') + p[0]; };
 const yearOf = d => String(d).slice(0, 4);
 const ext = 'target="_blank" rel="noopener"';
 
-function linksFor(r){
+/* this release's own links; with fallback, platforms it isn't on point at the artist profile */
+function linksFor(r, fallback){
   const own = (r && r.links) || {};
-  return PLATFORMS.map(p => Object.assign({}, p, { href: own[p.key] || PROFILES[p.key] || '' }))
-                  .filter(p => p.href);
+  return PLATFORMS.map(p => Object.assign({}, p, {
+      href: own[p.key] || (fallback ? PROFILES[p.key] : '') || '',
+      profile: !own[p.key]
+    })).filter(p => p.href);
 }
 function styleOf(r, i){ return r.style || COVER_STYLES[i % COVER_STYLES.length]; }
 
@@ -678,13 +759,13 @@ function renderLatest(){
     $('latestKicker').textContent = 'Latest ' + r.type.toLowerCase() + ' · ' + fmtDate(r.date);
     $('latestTitle').textContent = r.title;
     $('record').innerHTML = '<div class="record__slide">' + discHTML(r, 0) + '</div><div class="record__sleeve">' + coverHTML(r, 0) + '</div>';
-    $('heroNew').innerHTML = 'New ' + esc(r.type.toLowerCase()) + ' <strong>“' + esc(r.title) + '”</strong> is <em>out now</em>, on every platform.';
-    $('heroStamp').textContent = 'Out now · ' + fmtDate(r.date);
+    $('heroNew').innerHTML = 'Latest ' + esc(r.type.toLowerCase()) + ' <strong>“' + esc(r.title) + '”</strong> is <em>out now</em>, on every platform.';
+    $('heroStamp').textContent = 'Out now · ' + fmtMonth(r.date);
   }
 
-  $('platforms').innerHTML = linksFor(r).map(p =>
+  $('platforms').innerHTML = linksFor(r, true).map(p =>
     '<li><a href="' + esc(p.href) + '" ' + ext + '>' + esc(p.name)
-    + '<span><small>' + p.verb + '</small>' + ARROW + '</span></a></li>').join('');
+    + '<span><small>' + (p.profile ? 'Profile' : p.verb) + '</small>' + ARROW + '</span></a></li>').join('');
 
   const em = r && spotifyEmbed(r.links && r.links.spotify);
   $('embed').innerHTML = em
@@ -697,13 +778,19 @@ function renderLatest(){
 function renderReleases(){
   $('relCount').textContent = String(RELEASES.length).padStart(2, '0');
   $('releaseGrid').innerHTML = RELEASES.map((r, i) => {
-    const l = linksFor(r)[0];
-    return '<a class="rel" href="' + esc(l ? l.href : '#latest') + '" ' + (l ? ext : '') + '>'
-         +   '<div class="rel__art"><div class="rel__slide" aria-hidden="true">' + discHTML(r, i) + '</div>'
-         +   '<div class="rel__cover">' + coverHTML(r, i) + '</div></div>'
+    const links = linksFor(r, false);
+    const main = links[0] || linksFor(r, true)[0];
+    const href = main ? esc(main.href) + '" ' + ext : '#latest"';
+    return '<article class="rel">'
+         +   '<a class="rel__art" href="' + href + ' tabindex="-1" aria-hidden="true"><div class="rel__slide">' + discHTML(r, i) + '</div>'
+         +   '<div class="rel__cover">' + coverHTML(r, i) + '</div></a>'
          +   '<div class="rel__meta"><p class="kicker"><b>' + esc(r.type) + '</b><span>·</span><span>' + esc(fmtDate(r.date)) + '</span></p>'
-         +   '<h3>' + esc(r.title) + '</h3></div>'
-         + '</a>';
+         +   '<h3><a href="' + href + '>' + esc(r.title) + '</a></h3>'
+         +   (r.by ? '<p class="rel__by">' + esc(r.by) + '</p>' : '')
+         +   (links.length ? '<ul class="rel__links" aria-label="Listen to ' + esc(r.title) + '">' + links.map(p =>
+                '<li><a href="' + esc(p.href) + '" ' + ext + '>' + esc(p.short) + '</a></li>').join('') + '</ul>' : '')
+         +   '</div>'
+         + '</article>';
   }).join('');
 }
 
@@ -730,7 +817,7 @@ function renderVideos(){
 function renderTape(){
   const r = RELEASES[0];
   const words = r
-    ? ['New ' + r.type.toLowerCase() + ' “' + r.title + '” out now', 'Stream it everywhere', 'Froncu']
+    ? ['Latest ' + r.type.toLowerCase() + ' “' + r.title + '” out now', 'Stream it everywhere', 'Froncu']
     : ['New music soon', 'Froncu'];
   let set = '';
   for (let k = 0; k < 3; k++) set += words.map(w => '<span class="tape__item">' + esc(w) + STAR + '</span>').join('');
