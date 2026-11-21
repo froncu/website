@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en" data-fx="code">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />   <!-- dark scrollbars and a dark canvas between page loads -->
+<title>Jakub Frątczak - Graphics engineer</title>
+<meta name="description" content="Jakub Frątczak, graphics engineer at Day III Digital. On the side: a Vulkan PBR renderer, a 2D engine built from scratch, and a cycle-accurate NES emulator on C++ coroutines." />
+<meta name="theme-color" content="#0D0E11" />
+<meta property="og:title" content="Jakub Frątczak - Graphics engineer" />
+<meta property="og:description" content="Renderers, engines and emulators. Mostly from scratch, mostly in C++." />
+<meta property="og:image" content="https://froncu.dev/code/hero.png" />
+<meta property="og:url" content="https://froncu.dev/code/" />
+<meta property="og:type" content="profile" />
+<!-- page transition: cover from the first paint until transitions.js takes over (failsafe after 4.5s) -->
+<style>
+html.fx-in::after{content:""; position:fixed; inset:0; z-index:10000; background:#0D0E11; animation:fx-failsafe .3s 4.5s forwards}
+html.fx-in::before{content:""; position:fixed; inset:0; z-index:10001; opacity:.55; animation:fx-failsafe .3s 4.5s forwards;
+  background:linear-gradient(#22252C 1px, transparent 1px) 0 0/40px 40px, linear-gradient(90deg, #22252C 1px, transparent 1px) 0 0/40px 40px;
+  -webkit-mask-image:radial-gradient(70% 65% at 50% 50%, #000, transparent 80%); mask-image:radial-gradient(70% 65% at 50% 50%, #000, transparent 80%)}
+@keyframes fx-failsafe{to{opacity:0; visibility:hidden}}
+/* custom scrollbar (desktop): native one hidden, .rail drawn instead; colours per page */
+:root{--rail-bg:#0D0E11; --rail-thumb:#3A3D47; --rail-hot:#8C8CFF}
+html{scrollbar-color:var(--rail-thumb) var(--rail-bg)}   /* touch / fallback: native scrollbar in the page colours */
+html.has-rail{scrollbar-width:none}
+html.has-rail::-webkit-scrollbar{display:none}
+.rail{position:fixed; top:0; right:0; bottom:0; width:12px; z-index:10002; background-color:var(--rail-bg); cursor:default}
+.rail__thumb{position:absolute; top:0; right:3px; width:6px; height:0; border-radius:3px; opacity:0;
+  background-color:var(--rail-thumb); transition:width .15s, right .15s, background-color .2s}
+.rail:hover .rail__thumb,.rail.is-drag .rail__thumb{width:8px; right:2px; background-color:var(--rail-hot)}
+</style>
+<noscript><style>html.fx-in::after,html.fx-in::before{display:none}</style></noscript>
+<script>(function(r){
+  /* page intro cover (see transitions.js) */
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches) r.classList.add('fx-in','fx-busy');
+  /* custom scrollbar on desktop: built as the first thing in the page body from the previous
+     page's state, so it never blinks between pages; transitions.js morphs it and keeps it in sync */
+  var fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
+  if(fine) r.classList.add('has-rail');
+  window.__fxRail = function(){
+    if(!fine) return;
+    var d = document.createElement('div'), t = document.createElement('i');
+    d.className = 'rail'; d.setAttribute('aria-hidden', 'true'); t.className = 'rail__thumb'; d.appendChild(t);
+    try{
+      var s = JSON.parse(sessionStorage.getItem('fx-rail') || 'null'), h = r.clientHeight;
+      if(s && Date.now() - s.t < 10000){
+        d.style.backgroundColor = s.bg; t.style.backgroundColor = s.thumb; t.style.opacity = s.o;
+        t.style.height = s.h * h + 'px'; t.style.transform = 'translateY(' + s.top * h + 'px)';
+        d.setAttribute('data-from', '');
+      }
+    }catch(e){}
+    document.body.appendChild(d);
+  };
+  /* failsafe: if transitions.js never runs, drop the cover and bring the native scrollbar back */
+  setTimeout(function(){
+    r.classList.remove('fx-in','fx-busy');
+    if(!document.querySelector('.rail.is-live')){ r.classList.remove('has-rail'); var x = document.querySelector('.rail'); if(x) x.remove(); }
+  }, 4500);
+})(document.documentElement)</script>
+<script src="../transitions.js" defer></script>
+<link rel="icon" href="favicon.svg" type="image/svg+xml" />
+<link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
+<link rel="apple-touch-icon" href="apple-touch-icon.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap" />
+
+<style>
+/* ─── tokens ─────────────────────────────────────────────────────────── */
+:root{
+  --paper:#0D0E11;
+  --paper-2:#15171C;
+  --card:#111317;
+  --ink:#E9EAEE;
+  --ink-2:#A2A6B0;
+  --ink-3:#6C707A;
+  --rule:#22252C;
+  --rule-2:#30343C;
+  --accent:#8C8CFF;              /* a flat tangent-space normal: (128,128,255) */
+  --accent-tint:rgba(140,140,255,.13);
+  --code-bg:#08090B;
+  --sans:'Geist', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --serif:'Source Serif 4', 'Iowan Old Style', Georgia, serif;
+  --mono:'Geist Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --pad:clamp(18px, 4.5vw, 56px);   /* page width, gutters and header height match /music/ */
+  --nav-h:62px;
+}
+
+/* ─── base ───────────────────────────────────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth; -webkit-text-size-adjust:100%; background:var(--paper)}
+body{
+  margin:0; color:var(--ink); position:relative;
+  font-family:var(--sans); font-size:16px; line-height:1.6;
+  -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility;
+}
+img{display:block; max-width:100%}
+a{color:inherit}
+button{font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer}
+::selection{background:var(--accent); color:#0B0B12}
+body::before{ /* faint graph paper behind the hero */
+  content:""; position:absolute; left:0; right:0; top:0; height:980px; z-index:-1; pointer-events:none;
+  background:
+    linear-gradient(var(--rule) 1px, transparent 1px) 0 0/40px 40px,
+    linear-gradient(90deg, var(--rule) 1px, transparent 1px) 0 0/40px 40px;
+  opacity:.55;
+  -webkit-mask-image:radial-gradient(75% 65% at 72% 0%, #000 0%, transparent 78%);
+          mask-image:radial-gradient(75% 65% at 72% 0%, #000 0%, transparent 78%);
+}
+:focus-visible{outline:2px solid var(--accent); outline-offset:3px; border-radius:2px}
+.wrap{max-width:1320px; margin:0 auto; padding-inline:var(--pad)}
+.mono{font-family:var(--mono); font-weight:500; font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-3)}
+.skip{position:absolute; left:-9999px; top:0; z-index:100; background:var(--ink); color:var(--paper); padding:10px 16px}
+.skip:focus{left:12px; top:12px}
+
+/* ─── nav ────────────────────────────────────────────────────────────── */
+.nav{
+  position:sticky; top:0; z-index:50; height:var(--nav-h);
+  background:rgba(13,14,17,.8); backdrop-filter:blur(12px) saturate(1.3);
+  border-bottom:1px solid var(--rule);
+}
+.nav__in{display:flex; align-items:center; gap:clamp(16px,3vw,32px); height:100%}
+.mark{display:flex; align-items:center; gap:10px; font-weight:600; font-size:.98rem; letter-spacing:-.01em; text-decoration:none; white-space:nowrap}
+.mark__sq{width:10px; height:10px; background:var(--accent); flex:0 0 auto}
+.mark__abbr{display:none}
+.nav__links{display:flex; gap:clamp(14px,2.2vw,26px); margin-left:auto}
+.nav__links a{font-size:.88rem; font-weight:500; color:var(--ink-2); text-decoration:none; padding:4px 0; border-bottom:1.5px solid transparent; transition:color .15s, border-color .15s}
+.nav__links a:hover{color:var(--ink); border-bottom-color:var(--accent)}
+.nav__cv{display:none; font-size:.88rem; font-weight:500; color:var(--ink-2); text-decoration:none; margin-left:auto}
+
+/* site switch: home · code · music */
+.switch{border:1px solid var(--rule-2); border-radius:7px; overflow:hidden; background:var(--card)}
+.switch a{
+  display:flex; align-items:center;
+  font-family:var(--mono); font-size:.68rem; font-weight:500; letter-spacing:.06em; text-transform:uppercase;
+  color:var(--ink-3); text-decoration:none; transition:color .15s, background .15s;
+}
+.switch a + a{border-left:1px solid var(--rule-2)}
+.switch a:hover{color:var(--ink); background:var(--paper-2)}
+.switch a[aria-current="page"]{color:var(--ink); background:var(--accent-tint); box-shadow:inset 0 -2px 0 var(--accent)}
+.switch svg{width:14px; height:14px}
+.switch__music:hover{background:#FF3B24 !important; color:#1C0603 !important}
+/* shared with /music/: the toggle has the same size and spot on both pages */
+.switch{box-sizing:border-box; display:flex; flex:0 0 auto; width:184px; height:36px}
+.switch a{flex:1 1 0; min-width:0; justify-content:center; padding:0 !important}
+.switch .switch__home{flex:0 0 40px}
+@media (max-width:400px){ .switch{width:160px} .switch .switch__home{flex-basis:34px} }
+
+
+/* ─── buttons ────────────────────────────────────────────────────────── */
+.btn{
+  display:inline-flex; align-items:center; gap:8px; height:42px; padding:0 18px;
+  border:1px solid var(--rule-2); border-radius:7px; background:var(--card);
+  font-size:.9rem; font-weight:500; text-decoration:none; color:var(--ink);
+  transition:border-color .15s, background .15s, transform .15s;
+}
+.btn:hover{border-color:var(--ink); transform:translateY(-1px)}
+.btn--ink{background:var(--ink); border-color:var(--ink); color:var(--paper)}
+.btn--ink:hover{background:#fff; border-color:#fff}
+.btn--accent{background:var(--accent); border-color:var(--accent); color:#0B0B12}
+.btn--accent:hover{background:#A6A6FF; border-color:#A6A6FF}
+.btn svg{width:14px; height:14px; flex:0 0 auto}
+.btn--sm{height:36px; padding:0 14px; font-size:.84rem}
+
+/* ─── hero ───────────────────────────────────────────────────────────── */
+.hero{padding-block:clamp(44px,7vw,92px) clamp(40px,6vw,72px)}
+.hero__grid{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.08fr); gap:clamp(36px,5vw,72px); align-items:center}
+.hero__eyebrow{display:flex; align-items:center; gap:10px; margin:0 0 22px}
+h1{margin:0; font-size:clamp(2.7rem,6vw,4.7rem); font-weight:600; letter-spacing:-.045em; line-height:.98}
+.hero__lead{margin:22px 0 0; font-family:var(--serif); font-size:clamp(1.15rem,1.7vw,1.38rem); line-height:1.5; color:var(--ink-2); max-width:34ch}
+.hero__lead strong{color:var(--ink); font-weight:600}
+.status{display:inline-flex; align-items:center; gap:10px; margin-top:24px; padding:7px 12px 7px 10px; border:1px solid var(--rule-2); border-radius:999px; background:var(--card); font-size:.84rem; color:var(--ink-2)}
+.status i{width:8px; height:8px; border-radius:50%; background:#1E9E5A; box-shadow:0 0 0 3px rgba(30,158,90,.18)}
+.hero__cta{display:flex; flex-wrap:wrap; gap:10px; margin-top:28px}
+
+/* spec strip */
+.spec{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); margin-top:clamp(44px,6vw,72px); border-block:1px solid var(--rule)}
+.spec > div{padding:16px 18px 18px 0}
+.spec > div + div{padding-left:18px; border-left:1px solid var(--rule)}
+.spec dt{margin-bottom:6px}
+.spec dd{margin:0; font-size:.94rem; font-weight:500; line-height:1.45}
+.spec dd span{color:var(--ink-3); font-weight:400}
+
+/* ─── figure 1: screenshots from my own projects ─────────────────────── */
+.vp{border:1px solid var(--rule-2); border-radius:8px; background:var(--card); overflow:hidden; box-shadow:0 40px 80px -40px rgba(0,0,0,.85)}
+.vp__tabs{display:flex; border-bottom:1px solid var(--rule); overflow-x:auto; scrollbar-width:none}
+.vp__tabs::-webkit-scrollbar{display:none}
+.vp__tab{
+  flex:0 0 auto; padding:10px 14px; font-family:var(--mono); font-size:.66rem; font-weight:500;
+  letter-spacing:.06em; text-transform:uppercase; color:var(--ink-3); white-space:nowrap;
+  border-bottom:2px solid transparent; transition:color .15s, border-color .15s, background .15s;
+}
+.vp__tab:hover{color:var(--ink); background:var(--paper)}
+.vp__tab[aria-selected="true"]{color:var(--ink); border-bottom-color:var(--accent)}
+.vp__stage{position:relative; display:block; aspect-ratio:16/10; background:#07080A; overflow:hidden}
+.vp__stage img{position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transition:opacity .3s ease, transform .6s ease}
+.vp__stage img.is-contain{object-fit:contain}
+.vp__stage img.is-out{opacity:0}
+.vp__stage:hover img{transform:scale(1.02)}
+.vp__status{
+  display:flex; align-items:center; gap:14px; padding:8px 14px; border-top:1px solid var(--rule);
+  font-family:var(--mono); font-size:.64rem; letter-spacing:.04em; color:var(--ink-3); white-space:nowrap; overflow:hidden;
+}
+.vp__status b{color:var(--ink); font-weight:500}
+.vp__spacer{flex:1}
+.vp__status a{color:var(--ink-2); text-decoration:none; transition:color .15s}
+.vp__status a:hover{color:var(--accent)}
+.cap{margin:12px 2px 0; font-size:.86rem; line-height:1.55; color:var(--ink-2); max-width:62ch}
+.cap b{font-family:var(--mono); font-size:.72rem; font-weight:500; letter-spacing:.06em; text-transform:uppercase; color:var(--ink); margin-right:6px}
+
+/* ─── sections ───────────────────────────────────────────────────────── */
+.section{padding-block:clamp(56px,8vw,100px); scroll-margin-top:var(--nav-h)}
+.shead{display:grid; grid-template-columns:minmax(0,4fr) minmax(0,8fr); gap:clamp(24px,4vw,56px); align-items:end; margin-bottom:clamp(28px,4vw,48px)}
+.shead__num{display:block; font-family:var(--mono); font-size:.78rem; color:var(--accent); margin-bottom:10px}
+.shead h2{margin:0; font-size:clamp(1.9rem,3.6vw,2.8rem); font-weight:600; letter-spacing:-.035em; line-height:1.05}
+.shead p{margin:0; font-family:var(--serif); font-size:1.12rem; color:var(--ink-2); max-width:52ch}
+
+/* ─── case studies ───────────────────────────────────────────────────── */
+.case{display:grid; grid-template-columns:minmax(0,4fr) minmax(0,8fr); gap:clamp(28px,4vw,56px); padding-block:clamp(36px,5vw,60px); border-top:1px solid var(--rule)}
+.case__side{position:sticky; top:calc(var(--nav-h) + 28px); align-self:start}
+.case__num{font-family:var(--mono); font-size:.74rem; color:var(--ink-3)}
+.case h3{margin:8px 0 0; font-size:clamp(1.7rem,2.8vw,2.25rem); font-weight:600; letter-spacing:-.035em; line-height:1.05}
+.case__dek{margin:12px 0 0; font-family:var(--serif); font-size:1.12rem; line-height:1.45; color:var(--ink-2)}
+.meta{margin:22px 0 0; border-top:1px solid var(--rule)}
+.meta div{display:grid; grid-template-columns:72px 1fr; gap:12px; padding:9px 0; border-bottom:1px solid var(--rule)}
+.meta dt{font-family:var(--mono); font-size:.66rem; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); padding-top:3px}
+.meta dd{margin:0; font-size:.88rem; line-height:1.5}
+.badge{display:inline-block; padding:1px 7px; border-radius:4px; font-family:var(--mono); font-size:.66rem; letter-spacing:.04em; text-transform:uppercase; background:rgba(242,190,90,.1); color:#F0C36A; border:1px solid rgba(242,190,90,.3)}
+.badge--win{background:rgba(80,200,130,.1); color:#7DD8A4; border-color:rgba(80,200,130,.3)}
+.case__links{display:flex; flex-wrap:wrap; gap:8px; margin-top:20px}
+
+.fig{margin:0}
+.fig__frame{border:1px solid var(--rule-2); border-radius:8px; overflow:hidden; background:var(--paper-2)}
+.fig__frame img{width:100%; aspect-ratio:16/9; object-fit:cover}
+.fig__frame--contain img{object-fit:contain; background:#0B0B0F}
+.prose{margin-top:26px}
+.prose p{margin:0 0 16px; font-family:var(--serif); font-size:1.08rem; line-height:1.7; color:var(--ink-2); max-width:64ch}
+.prose p strong{color:var(--ink); font-weight:600}
+.prose h4{margin:26px 0 12px; font-family:var(--mono); font-size:.72rem; font-weight:500; letter-spacing:.08em; text-transform:uppercase; color:var(--ink)}
+.points{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:0 28px; border-top:1px solid var(--rule)}
+.points li{position:relative; padding:11px 0 11px 20px; border-bottom:1px solid var(--rule); font-size:.93rem; line-height:1.5}
+.points li::before{content:""; position:absolute; left:2px; top:19px; width:7px; height:7px; background:var(--accent)}
+.points code,.prose code{font-family:var(--mono); font-size:.86em; background:var(--paper-2); border:1px solid var(--rule); border-radius:4px; padding:0 4px}
+
+/* code listing */
+.listing{margin:28px 0 0}
+.listing__bar{display:flex; justify-content:space-between; align-items:center; gap:12px; padding:9px 14px; background:var(--paper-2); border:1px solid var(--rule-2); border-bottom:0; border-radius:8px 8px 0 0; font-family:var(--mono); font-size:.68rem; color:var(--ink-3)}
+.listing__bar span{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; direction:rtl; text-align:left}
+.listing__bar a{flex:0 0 auto; white-space:nowrap; color:#C9CBF8; text-decoration:none}
+.listing__bar a:hover{text-decoration:underline}
+.listing pre{
+  margin:0; padding:18px 20px; overflow-x:auto; background:var(--code-bg); color:#D8DAE0; border:1px solid var(--rule-2); border-radius:0 0 8px 8px;
+  font-family:var(--mono); font-size:.8rem; line-height:1.65; tab-size:3;
+  scrollbar-width:thin; scrollbar-color:#3A3C45 transparent;
+}
+.tok-c{color:#7C8291; font-style:italic}
+.tok-k{color:#B7B7FF}
+.tok-t{color:#7FD4C1}
+.tok-f{color:#F2C879}
+.tok-n{color:#F59E7C}
+.tok-s{color:#A6DA95}
+.listing figcaption{margin-top:10px}
+
+/* ─── more projects ──────────────────────────────────────────────────── */
+.cards{display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:clamp(18px,2.4vw,28px)}
+.card{display:flex; flex-direction:column; border:1px solid var(--rule-2); border-radius:10px; background:var(--card); overflow:hidden; transition:border-color .2s, box-shadow .2s}
+.card:hover{border-color:var(--ink-3); box-shadow:0 30px 50px -30px rgba(0,0,0,.9)}
+.card__img{aspect-ratio:16/9; background:var(--paper-2); border-bottom:1px solid var(--rule); overflow:hidden}
+.card__img img{width:100%; height:100%; object-fit:cover; transition:transform .5s ease}
+.card:hover .card__img img{transform:scale(1.03)}
+.card__body{display:flex; flex-direction:column; gap:10px; padding:20px 22px 22px; flex:1}
+.card__top{display:flex; flex-wrap:wrap; gap:8px; align-items:center}
+.card h3{margin:0; font-size:1.3rem; font-weight:600; letter-spacing:-.025em; line-height:1.2}
+.card p{margin:0; font-family:var(--serif); font-size:1rem; line-height:1.6; color:var(--ink-2)}
+.card__role{font-size:.88rem !important; font-family:var(--sans) !important; color:var(--ink) !important}
+.card__role b{font-family:var(--mono); font-size:.66rem; font-weight:500; letter-spacing:.07em; text-transform:uppercase; color:var(--ink-3); margin-right:6px}
+.card details{margin-top:2px; border-top:1px solid var(--rule); padding-top:10px}
+.card summary{cursor:pointer; list-style:none; display:inline-flex; align-items:center; gap:8px; font-family:var(--mono); font-size:.7rem; letter-spacing:.06em; text-transform:uppercase; color:var(--ink-2)}
+.card summary::-webkit-details-marker{display:none}
+.card summary::before{content:"+"; display:inline-grid; place-items:center; width:18px; height:18px; border:1px solid var(--rule-2); border-radius:4px; font-size:.8rem; line-height:1}
+.card details[open] summary::before{content:"−"}
+.card summary:hover{color:var(--ink)}
+.card details p{margin-top:12px; font-size:.95rem}
+.card__foot{display:flex; flex-wrap:wrap; gap:8px; margin-top:auto; padding-top:8px}
+.tags{display:flex; flex-wrap:wrap; gap:6px; margin-top:12px}
+.tag{font-family:var(--mono); font-size:.64rem; letter-spacing:.03em; color:var(--ink-2); border:1px solid var(--rule-2); border-radius:4px; padding:3px 7px; background:var(--paper)}
+
+/* ─── toolbox ────────────────────────────────────────────────────────── */
+.tools{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); border-top:1px solid var(--ink-3)}
+.tools > div{padding:18px 18px 22px 0}
+.tools > div + div{padding-left:18px; border-left:1px solid var(--rule)}
+.tools h3{margin:0 0 12px; font-family:var(--mono); font-size:.72rem; font-weight:500; letter-spacing:.08em; text-transform:uppercase}
+.tools ul{list-style:none; margin:0; padding:0; display:grid; gap:7px}
+.tools li{font-size:.94rem; color:var(--ink-2)}
+.tools li span{color:var(--ink-3)}
+
+/* ─── about ──────────────────────────────────────────────────────────── */
+.about{display:grid; grid-template-columns:minmax(0,4fr) minmax(0,8fr); gap:clamp(28px,4vw,56px); align-items:start}
+.portrait{margin:0; border:1px solid var(--rule-2); border-radius:8px; overflow:hidden; background:var(--paper-2)}
+.portrait img{width:100%; aspect-ratio:1/1; object-fit:cover}
+.facts{list-style:none; margin:18px 0 0; padding:0; border-top:1px solid var(--rule)}
+.facts li{display:grid; grid-template-columns:72px 1fr; gap:12px; padding:9px 0; border-bottom:1px solid var(--rule); font-size:.88rem}
+.facts .mono{font-size:.64rem; padding-top:3px}
+.facts a{text-decoration:none; border-bottom:1.5px solid #FF3B24}
+.facts a:hover{color:#FF6A55}
+.lnk{color:inherit; text-decoration:none; border-bottom:1.5px solid var(--accent); transition:color .15s, background .15s}
+.lnk:hover{color:var(--ink); background:var(--accent-tint)}
+.facts a.lnk{border-bottom-color:var(--accent)}
+.facts a.lnk:hover{color:var(--ink)}
+.about .prose{margin-top:0}
+.about .prose a{color:var(--ink); text-decoration:none; border-bottom:1.5px solid var(--accent)}
+.about .prose a:hover{background:var(--accent-tint)}
+
+/* ─── contact ────────────────────────────────────────────────────────── */
+.contact{border-top:1px solid var(--rule-2); padding-block:clamp(48px,7vw,88px)}
+.contact__grid{display:grid; grid-template-columns:minmax(0,1.3fr) minmax(0,1fr); gap:clamp(28px,4vw,56px); align-items:end}
+.contact h2{margin:0; font-size:clamp(2.2rem,5vw,3.8rem); font-weight:600; letter-spacing:-.045em; line-height:1}
+.contact h2 em{font-family:var(--serif); font-weight:400; font-style:italic; letter-spacing:-.02em; color:var(--accent)}
+.contact p{margin:16px 0 0; font-family:var(--serif); font-size:1.12rem; color:var(--ink-2); max-width:44ch}
+.contact__links{display:grid; gap:0; border-top:1px solid var(--rule)}
+.contact__links a{display:flex; justify-content:space-between; align-items:center; padding:13px 2px; border-bottom:1px solid var(--rule); text-decoration:none; font-weight:500; transition:padding .2s, color .2s}
+.contact__links a span{font-family:var(--mono); font-size:.72rem; color:var(--ink-3)}
+.contact__links a:hover{padding-inline:10px; color:var(--accent)}
+
+/* ─── footer ─────────────────────────────────────────────────────────── */
+.foot{padding-block:28px 40px}
+.xlink{
+  display:grid; grid-template-columns:auto 1fr auto; gap:6px 20px; align-items:center;
+  padding:18px 22px; border-radius:10px; background:#150C0A; border:1px solid #3A1D17; color:#F0E9DD; text-decoration:none;
+  transition:background .25s, border-color .25s;
+}
+.xlink:hover{background:#FF3B24; border-color:#FF3B24; color:#1C0603}
+.xlink__tag{color:#FF3B24; transition:color .25s; font-family:'Anton', Impact, 'Arial Narrow Bold', sans-serif; font-size:1.5rem; line-height:1; text-transform:uppercase; letter-spacing:.01em}
+.xlink__txt{font-size:.95rem; opacity:.85}
+.xlink__go{font-size:1.3rem; transition:transform .25s}
+.xlink:hover .xlink__go{transform:translateX(4px)}
+.xlink:hover .xlink__tag{color:#1C0603}
+.foot__base{display:flex; flex-wrap:wrap; gap:10px 24px; justify-content:space-between; margin-top:26px; padding-top:18px; border-top:1px solid var(--rule)}
+.foot__base p{margin:0}
+.foot__base a{text-decoration:none}
+.foot__base a:hover{color:var(--ink)}
+
+/* ─── motion (JS only) ───────────────────────────────────────────────── */
+.js .reveal{opacity:0; transform:translateY(12px); transition:opacity .6s ease, transform .6s ease}
+.js .reveal.in{opacity:1; transform:none}
+.js .rise{opacity:0; transform:translateY(18px); animation:rise .8s cubic-bezier(.2,.7,.2,1) forwards}
+.js .rise.d1{animation-delay:.07s} .js .rise.d2{animation-delay:.14s} .js .rise.d3{animation-delay:.22s} .js .rise.d4{animation-delay:.32s}
+@keyframes rise{to{opacity:1; transform:none}}
+.fx-busy .rise{animation-play-state:paused}   /* wait for the page transition */
+
+/* ─── responsive ─────────────────────────────────────────────────────── */
+@media (max-width:1000px){
+  .hero__grid{grid-template-columns:minmax(0,1fr)}
+  .hero__lead{max-width:46ch}
+  .spec{grid-template-columns:repeat(2, minmax(0,1fr))}
+  .spec > div:nth-child(3){padding-left:0; border-left:0}
+  .spec > div:nth-child(n+3){border-top:1px solid var(--rule)}
+  .case,.about,.shead{grid-template-columns:minmax(0,1fr)}
+  .case__side{position:static}
+  .shead{gap:12px}
+  .tools{grid-template-columns:repeat(2, minmax(0,1fr))}
+  .tools > div:nth-child(3){padding-left:0; border-left:0}
+  .tools > div:nth-child(n+3){border-top:1px solid var(--rule)}
+  .about .portrait{max-width:320px}
+  .contact__grid{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width:820px){
+  .nav__links{display:none}
+  .nav__cv{display:block}
+}
+@media (max-width:680px){
+  .cards,.points{grid-template-columns:minmax(0,1fr)}
+  .mark__full{display:none}
+  .mark__abbr{display:inline}
+  .xlink{grid-template-columns:1fr auto}
+  .xlink__txt{grid-column:1 / -1; grid-row:2}
+}
+@media (max-width:520px){
+  .spec,.tools{grid-template-columns:minmax(0,1fr)}
+  .spec > div,.tools > div{padding-left:0 !important; border-left:0 !important}
+  .spec > div + div,.tools > div + div{border-top:1px solid var(--rule)}
+  .vp__status{font-size:.58rem; gap:10px}
+}
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *,*::before,*::after{transition-duration:1ms !important; animation-duration:1ms !important}
+  .js .reveal,.js .rise{opacity:1; transform:none; animation:none}
+}
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&display=swap" />
+</head>
+
+<body id="top">
+<script>window.__fxRail && __fxRail()</script>
+<a class="skip" href="#work">Skip to projects</a>
+
+<header class="nav">
+  <div class="wrap nav__in">
+    <a class="mark" href="#top"><span class="mark__sq" aria-hidden="true"></span><span class="mark__full">Jakub Frątczak</span><span class="mark__abbr">JF</span></a>
+    <nav class="nav__links" aria-label="Sections">
+      <a href="#work">Work</a>
+      <a href="#toolbox">Toolbox</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+      <a href="resume.pdf" target="_blank" rel="noopener">Résumé</a>
+    </nav>
+    <a class="nav__cv" href="resume.pdf" target="_blank" rel="noopener">Résumé</a>
+    <nav class="switch" aria-label="froncu.dev">
+      <a class="switch__home" href="../" title="Back to froncu.dev" aria-label="Back to froncu.dev"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M2.5 7.2 8 2.5l5.5 4.7V13.5h-3.7V9.6H6.2v3.9H2.5z" stroke-linejoin="round"/></svg></a>
+      <a href="./" aria-current="page">Code</a>
+      <a class="switch__music" href="../music/">Music</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <!-- ── hero ──────────────────────────────────────────────────────── -->
+  <section class="hero wrap">
+    <div class="hero__grid">
+      <div>
+        <p class="mono hero__eyebrow rise">C++ · Engine · Graphics</p>
+        <h1 class="rise d1">Jakub Frątczak</h1>
+        <p class="hero__lead rise d2"><strong>Graphics engineer.</strong> I build renderers, engines and emulators in modern C++, mostly from scratch.</p>
+        <span class="status rise d3"><i aria-hidden="true"></i>Currently at <a class="lnk" href="https://dayiii.com/" target="_blank" rel="noopener">Day III Digital</a></span>
+        <div class="hero__cta rise d3">
+          <a class="btn btn--ink" href="#work">See the work <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><path d="M8 3v10M3.5 8.5 8 13l4.5-4.5"/></svg></a>
+          <a class="btn" href="resume.pdf" target="_blank" rel="noopener">Résumé <span class="mono" style="font-size:.62rem">PDF</span></a>
+          <a class="btn" href="https://github.com/froncu" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </div>
+
+      <figure class="fig rise d2" style="margin:0">
+        <div class="vp" id="vp">
+          <div class="vp__tabs" role="tablist" aria-label="Projects">
+            <button class="vp__tab" role="tab" aria-selected="true"  data-i="0">Eruptor</button>
+            <button class="vp__tab" role="tab" aria-selected="false" data-i="1">Fronge</button>
+            <button class="vp__tab" role="tab" aria-selected="false" data-i="2">FroNES</button>
+            <button class="vp__tab" role="tab" aria-selected="false" data-i="3">NESlides</button>
+          </div>
+          <a class="vp__stage" id="vpStage" href="#eruptor" role="tabpanel">
+            <img id="vpImg" src="cover.jpg" alt="Sponza rendered in Eruptor, my Vulkan deferred PBR renderer" fetchpriority="high" />
+          </a>
+          <div class="vp__status">
+            <span id="vpMeta"><b>Eruptor</b> · Vulkan · deferred PBR</span>
+            <span class="vp__spacer"></span>
+            <a id="vpLink" href="#eruptor">Read the write-up ↓</a>
+          </div>
+        </div>
+        <figcaption class="cap"><b>Fig. 1</b>Screenshots from my own projects, all built from scratch. Pick one, or click through to its write-up.</figcaption>
+      </figure>
+    </div>
+
+    <dl class="spec rise d4">
+      <div><dt class="mono">Working</dt><dd>Graphics engineer <span>· <a class="lnk" href="https://dayiii.com/" target="_blank" rel="noopener">Day III Digital</a></span></dd></div>
+      <div><dt class="mono">Graduated</dt><dd>Digital Arts &amp; Entertainment <span>· Howest, magna cum laude</span></dd></div>
+      <div><dt class="mono">On the side</dt><dd>Eruptor <span>(Vulkan PBR)</span> &amp; FroNES <span>(NES emulator)</span></dd></div>
+      <div><dt class="mono">Based</dt><dd>Belgium <span>· Polish roots</span></dd></div>
+    </dl>
+  </section>
+
+  <!-- ── 1. selected work ──────────────────────────────────────────── -->
+  <section class="section wrap" id="work" style="padding-top:clamp(24px,4vw,48px)">
+    <div class="shead reveal">
+      <div><span class="shead__num">§1</span><h2>Selected work</h2></div>
+      <p>Three side projects, built from scratch: a renderer, an engine and an emulator. What each one does, what I built, and the techniques behind it.</p>
+    </div>
+
+    <!-- Eruptor -->
+    <article class="case reveal" id="eruptor">
+      <div class="case__side">
+        <span class="case__num">1.1</span>
+        <h3>Eruptor</h3>
+        <p class="case__dek">A physically based, deferred renderer in modern Vulkan.</p>
+        <dl class="meta">
+          <div><dt>Type</dt><dd>Personal project</dd></div>
+          <div><dt>Stack</dt><dd>C++20, Vulkan (Vulkan-Hpp), SDL3, assimp, GLM, spdlog, CMake</dd></div>
+          <div><dt>Focus</dt><dd>Rendering architecture, GPU synchronization</dd></div>
+        </dl>
+        <div class="case__links">
+          <a class="btn btn--sm btn--ink" href="https://github.com/Froncu/Eruptor" target="_blank" rel="noopener">Source on GitHub ↗</a>
+        </div>
+      </div>
+      <div class="case__main">
+        <figure class="fig">
+          <div class="fig__frame"><img src="eruptor.png" alt="Eruptor rendering the Sponza atrium" loading="lazy" decoding="async" /></div>
+          <figcaption class="cap"><b>Fig. 2</b>Sponza in Eruptor: deferred PBR, lit in HDR, tone-mapped with automatic exposure.</figcaption>
+        </figure>
+        <div class="prose">
+          <p>Eruptor is where I learn modern Vulkan properly: a <strong>deferred pipeline</strong> with a depth pre-pass and a G-buffer, lighting computed in <strong>HDR</strong> and tone-mapped, and <strong>automatic exposure</strong> driven by a luminance histogram in compute shaders.</p>
+          <p>Just as much, it is about architecture: RAII owns every GPU resource, builders keep configuration readable, and synchronization is explicit and fine-grained instead of “wait for idle”.</p>
+          <h4>Highlights</h4>
+          <ul class="points">
+            <li>Depth pre-pass → G-buffer → HDR lighting → tone mapping</li>
+            <li>Histogram-based eye adaptation in compute shaders</li>
+            <li>Bindless access to shader resources</li>
+            <li>Dynamic rendering, no render-pass objects</li>
+            <li>Fine-grained barriers with <code>Synchronization2</code></li>
+            <li>RAII resource ownership and builder-pattern setup</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- Fronge -->
+    <article class="case reveal" id="fronge">
+      <div class="case__side">
+        <span class="case__num">1.2</span>
+        <h3>Fronge</h3>
+        <p class="case__dek">A 2D game engine in C++23, built entirely from scratch.</p>
+        <dl class="meta">
+          <div><dt>Type</dt><dd>Solo project</dd></div>
+          <div><dt>Stack</dt><dd>C++23, SDL3 (Mixer, Image, TTF), Dear ImGui, CMake</dd></div>
+          <div><dt>Focus</dt><dd>Engine architecture, data layout, API design</dd></div>
+        </dl>
+        <div class="case__links">
+          <a class="btn btn--sm btn--ink" href="https://github.com/Froncu/Fronge" target="_blank" rel="noopener">Source on GitHub ↗</a>
+          <a class="btn btn--sm" href="https://github.com/Froncu/Sandbox" target="_blank" rel="noopener">Sandbox project ↗</a>
+        </div>
+      </div>
+      <div class="case__main">
+        <figure class="fig">
+          <div class="fig__frame"><img src="fronge.png" alt="A scene running in the Fronge engine" loading="lazy" decoding="async" /></div>
+          <figcaption class="cap"><b>Fig. 3</b>The Sandbox project running on Fronge: physics shapes, a Dear ImGui panel, and engine logging in the console.</figcaption>
+        </figure>
+        <div class="prose">
+          <p>Fronge is a learning-by-building engine. At its core is an <strong>Entity-Component-System on sparse sets</strong>, laid out for cache efficiency, with a <strong>physics system</strong> designed to live inside that ECS rather than beside it.</p>
+          <p>Dependencies are few and sit behind engine-level interfaces, so game code talks to Fronge, never to SDL directly.</p>
+          <h4>Highlights</h4>
+          <ul class="points">
+            <li>Sparse-set ECS for cache-friendly iteration</li>
+            <li>2D physics integrated with the ECS</li>
+            <li>Keyboard &amp; gamepad routed to per-user controllers, devices assigned at runtime</li>
+            <li>Smart references that stay valid when objects move</li>
+            <li>Event system to decouple components</li>
+            <li>Thread-safe logging</li>
+          </ul>
+        </div>
+      </div>
+    </article>
+
+    <!-- FroNES -->
+    <article class="case reveal" id="frones">
+      <div class="case__side">
+        <span class="case__num">1.3</span>
+        <h3>FroNES</h3>
+        <p class="case__dek">A cycle-accurate NES emulator where every CPU instruction is a C++ coroutine.</p>
+        <dl class="meta">
+          <div><dt>Status</dt><dd><span class="badge">Early development</span> · 6502 CPU first</dd></div>
+          <div><dt>Type</dt><dd>Personal project</dd></div>
+          <div><dt>Stack</dt><dd>C++23 coroutines, SDL3, Dear ImGui, CMake, vcpkg, Emscripten</dd></div>
+        </dl>
+        <div class="case__links">
+          <a class="btn btn--sm btn--accent" href="frones/" target="_blank" rel="noopener">Run it in your browser ↗</a>
+          <a class="btn btn--sm" href="https://github.com/Froncu/FroNES" target="_blank" rel="noopener">Source ↗</a>
+        </div>
+      </div>
+      <div class="case__main">
+        <figure class="fig">
+          <div class="fig__frame fig__frame--contain"><img src="nes.png" alt="FroNES debugger: memory view and CPU registers" loading="lazy" decoding="async" /></div>
+          <figcaption class="cap"><b>Fig. 4</b>The FroNES debugger: memory view, CPU registers and execution controls. The WebAssembly build linked above runs exactly this.</figcaption>
+        </figure>
+        <div class="prose">
+          <p>Real hardware does one bus access per cycle, so FroNES models exactly that. Each opcode is a <strong>coroutine</strong> that suspends after every cycle; the CPU’s <code>tick()</code> resumes the current instruction once per clock, which makes cycle accuracy a property of the code’s shape rather than a lookup table of timings.</p>
+          <p>Right now the target is the <strong>NMOS 6502</strong>, the base of the NES’s Ricoh 2A03, checked against Klaus2m5’s 6502 functional test. Next come the 2A03’s differences, then the PPU.</p>
+        </div>
+        <figure class="listing">
+          <div class="listing__bar"><span>source/hardware/processor/processor.cpp</span><a href="https://github.com/Froncu/FroNES/blob/main/source/hardware/processor/processor.cpp" target="_blank" rel="noopener">view on GitHub ↗</a></div>
+<pre><code class="cpp">auto Processor::absolute_indexed(ReadOperation const operation, Index const index) -> Instruction
+{
+   // fetch low byte of address, increment PC
+   Byte const low_byte_of_address{ memory_.read(program_counter) };
+   ++program_counter;
+   co_await std::suspend_always{};
+
+   // fetch high byte of address, add index register to low address byte, increment PC
+   Byte high_byte_of_address{ memory_.read(program_counter) };
+   auto const [low_byte, overflow]{ add_with_overflow(low_byte_of_address, index) };
+   ++program_counter;
+   co_await std::suspend_always{};
+
+   // read from effective address, fix the high byte of effective address
+   Word effective_address{ assemble_word(high_byte_of_address, low_byte) };
+   Byte value{ memory_.read(effective_address) };
+   if (overflow)
+   {
+      ++high_byte_of_address;
+      co_await std::suspend_always{};
+
+      // re-read from effective address (+)
+      effective_address = assign_high_byte(effective_address, high_byte_of_address);
+      value = memory_.read(effective_address);
+   }
+
+   std::invoke(operation, this, value);
+   co_return std::nullopt;
+}</code></pre>
+          <figcaption class="cap"><b>Listing 1</b>Absolute,X / absolute,Y reads. Each <code>co_await</code> ends a cycle; crossing a page costs one extra, exactly like the hardware.</figcaption>
+        </figure>
+      </div>
+    </article>
+  </section>
+
+  <!-- ── 2. more projects ──────────────────────────────────────────── -->
+  <section class="section wrap" id="more" style="padding-top:0">
+    <div class="shead reveal">
+      <div><span class="shead__num">§2</span><h2>More projects</h2></div>
+      <p>Team games, a game-jam winner and some bare-metal 6502.</p>
+    </div>
+
+    <div class="cards">
+      <article class="card reveal">
+        <div class="card__img"><img src="neslides.png" alt="NESlides running on the NES" loading="lazy" decoding="async" /></div>
+        <div class="card__body">
+          <div class="card__top"><span class="mono">6502 Assembly · NES homebrew · Team</span></div>
+          <h3>NESlides</h3>
+          <p>A slide deck that runs on a Nintendo Entertainment System: flip through slides and shoot tiles off the screen. Pure 6502 assembly, plus a companion editor for building decks.</p>
+          <details>
+            <summary>Details</summary>
+            <p>NESlides turns the NES into an interactive presentation system. It works directly with the PPU, memory-mapped I/O, sprites and controller input, all within the limits of 8-bit hardware with very little memory. The companion NESlidesEditor creates custom presentations.</p>
+            <div class="tags"><span class="tag">6502 Assembly</span><span class="tag">PPU</span><span class="tag">Memory-mapped I/O</span><span class="tag">Homebrew</span><span class="tag">Retro programming</span></div>
+          </details>
+          <div class="card__foot"><a class="btn btn--sm" href="https://github.com/knapeczadam/dae-retro-console-and-emulator-programming-neslides" target="_blank" rel="noopener">Source ↗</a></div>
+        </div>
+      </article>
+
+      <article class="card reveal">
+        <div class="card__img"><img src="just_keep_swimming.png" alt="Just Keep Swimming: a pufferfish slinging through an underwater level" loading="lazy" decoding="async" /></div>
+        <div class="card__body">
+          <div class="card__top"><span class="badge badge--win">Jam winner</span><span class="mono">Unreal Engine 5 · Team</span></div>
+          <h3>Just Keep Swimming</h3>
+          <p>Winner of the UNWRAP 2024 game jam. A 2.5D speedrun platformer: sling a chonky pufferfish to the ocean floor and plug the leak before the water drains.</p>
+          <details>
+            <summary>Details</summary>
+            <p>Players drag from the fish to slingshot it through underwater platforming: sticky pads, sea mines, sea urchins, and an anglerfish that dashes at you. It is all about momentum and timing while the water level keeps dropping.</p>
+            <div class="tags"><span class="tag">Unreal Engine 5</span><span class="tag">2.5D</span><span class="tag">Platformer</span><span class="tag">Game jam</span></div>
+          </details>
+          <div class="card__foot"><a class="btn btn--sm btn--ink" href="https://woutjaah.itch.io/just-keep-swimming" target="_blank" rel="noopener">Play on itch.io ↗</a></div>
+        </div>
+      </article>
+
+      <article class="card reveal">
+        <div class="card__img"><img src="kidults.png" alt="Kidults: two kids stacked in a trench coat" loading="lazy" decoding="async" /></div>
+        <div class="card__body">
+          <div class="card__top"><span class="mono">Unreal Engine 5 · Local co-op · Team</span></div>
+          <h3>Kidults</h3>
+          <p>Two players, one trench coat. A physics-based co-op game about stacking up and walking convincingly “adult” past the cinema staff.</p>
+          <p class="card__role"><b>My role</b>Core gameplay: the physics-based balancing system and player controls, plus final optimisation.</p>
+          <details>
+            <summary>Details</summary>
+            <p>Both players control one wobbly disguise, so every step needs coordination; NPCs notice when you stop acting “normal”. Built with a multidisciplinary team across programming, art, level design and animation.</p>
+            <div class="tags"><span class="tag">Unreal Engine 5</span><span class="tag">Physics-based</span><span class="tag">Local multiplayer</span><span class="tag">Gameplay programming</span></div>
+          </details>
+          <div class="card__foot"><a class="btn btn--sm btn--ink" href="https://froncu.itch.io/kidults" target="_blank" rel="noopener">Play on itch.io ↗</a></div>
+        </div>
+      </article>
+
+      <article class="card reveal">
+        <div class="card__img"><img src="shovel_knight.png" alt="Shovel of Hope remake: the first level" loading="lazy" decoding="async" /></div>
+        <div class="card__body">
+          <div class="card__top"><span class="mono">C++14 · SDL2 · Solo coursework</span></div>
+          <h3>Shovel of Hope remake</h3>
+          <p>A near-complete remake of Shovel Knight’s first level: shovel combat, pogo jumps, destructible terrain, enemy AI, moving platforms and checkpoints.</p>
+          <details>
+            <summary>Details</summary>
+            <p>My first major game project, the final assignment for Programming 2 at Howest DAE (June 2023). Later migrated from Visual Studio solutions to a CMake + vcpkg build. SDL2 handles windowing, rendering, input and audio.</p>
+            <div class="tags"><span class="tag">C++14</span><span class="tag">SDL2</span><span class="tag">CMake</span><span class="tag">vcpkg</span></div>
+          </details>
+          <div class="card__foot"><a class="btn btn--sm" href="https://github.com/Froncu/ShovelOfHopeRemake" target="_blank" rel="noopener">Source ↗</a></div>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <!-- ── 3. toolbox ────────────────────────────────────────────────── -->
+  <section class="section wrap" id="toolbox" style="padding-top:0">
+    <div class="shead reveal">
+      <div><span class="shead__num">§3</span><h2>Toolbox</h2></div>
+      <p>What I work with, at work and in the projects above.</p>
+    </div>
+    <div class="tools reveal">
+      <div><h3>Languages</h3><ul><li>C++ <span>14 → 23</span></li><li>6502 assembly</li></ul></div>
+      <div><h3>Graphics</h3><ul><li>Vulkan <span>· Vulkan-Hpp</span></li><li>PBR, deferred shading</li><li>HDR &amp; tone mapping</li><li>Compute shaders</li></ul></div>
+      <div><h3>Engine &amp; systems</h3><ul><li>ECS <span>· sparse sets</span></li><li>2D physics</li><li>Input systems</li><li>Coroutines</li><li>Emulation</li></ul></div>
+      <div><h3>Tools</h3><ul><li>Git, Perforce</li><li>CMake, vcpkg</li><li>SDL2 / SDL3</li><li>Dear ImGui</li><li>Unreal Engine 5</li><li>Emscripten</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ── 4. about ──────────────────────────────────────────────────── -->
+  <section class="section wrap" id="about" style="padding-top:0">
+    <div class="shead reveal">
+      <div><span class="shead__num">§4</span><h2>About</h2></div>
+      <p>From not knowing what to study to graphics engineering.</p>
+    </div>
+    <div class="about reveal">
+      <div>
+        <figure class="portrait"><img src="hero.png" alt="Portrait of Jakub Frątczak" loading="lazy" decoding="async" /></figure>
+        <ul class="facts">
+          <li><span class="mono">Work</span><span>Graphics engineer, <a class="lnk" href="https://dayiii.com/" target="_blank" rel="noopener">Day III Digital</a></span></li>
+          <li><span class="mono">Degree</span><span>Digital Arts &amp; Entertainment, Howest. Magna cum laude</span></li>
+          <li><span class="mono">Based</span><span>Belgium, with Polish roots</span></li>
+          <li><span class="mono">Focus</span><span>Engine, graphics, embedded</span></li>
+          <li><span class="mono">Judo</span><span>Belgian U21 +100 kg champion, 2022</span></li>
+          <li><span class="mono">Music</span><span>I rap too. <a href="../music/">Have a listen</a></span></li>
+        </ul>
+      </div>
+      <div class="prose">
+        <p>During my final years of high school, I wasn’t sure what career path to pursue. My interests in mathematics, physics, computers and games naturally led me to <strong>game development</strong>.</p>
+        <p>I began studying at <a href="https://digitalartsandentertainment.be/" target="_blank" rel="noopener"><strong>DAE</strong></a>, where I discovered programming for the first time. We started with <strong>C++</strong>, and I was instantly hooked. I graduated <strong>magna cum laude</strong> and now work as a <strong>graphics engineer at <a href="https://dayiii.com/" target="_blank" rel="noopener">Day III Digital</a></strong>.</p>
+        <p>Since then I’ve become a passionate C++ developer focused on <strong>high-performance code</strong> with a <strong>clean API</strong> and <strong>modern C++ features</strong>. I especially enjoy <strong>engine</strong>, <strong>graphics</strong> and <strong>embedded</strong> programming.</p>
+        <p>Born and raised in Belgium with Polish roots, my long-term goal is to <strong>return to Poland</strong> and build my career there.</p>
+        <p>Outside of programming I value a healthy lifestyle. I practised <strong>judo</strong> for eight years, winning the <strong>Belgian U21 +100 kg title</strong> in 2022, and I enjoy weightlifting in my free time.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── 5. contact ────────────────────────────────────────────────── -->
+  <section class="contact" id="contact">
+    <div class="wrap contact__grid reveal">
+      <div>
+        <span class="shead__num">§5</span>
+        <h2>Want to talk graphics? <em>Say hi.</em></h2>
+        <p>Questions about one of these projects, or just want to talk rendering, engines or emulators? LinkedIn is the quickest way to reach me.</p>
+      </div>
+      <nav class="contact__links" aria-label="Contact">
+        <a href="https://linkedin.com/in/froncu" target="_blank" rel="noopener">LinkedIn <span>/in/froncu ↗</span></a>
+        <a href="https://github.com/froncu" target="_blank" rel="noopener">GitHub <span>@froncu ↗</span></a>
+        <a href="https://froncu.itch.io/" target="_blank" rel="noopener">itch.io <span>froncu ↗</span></a>
+        <a href="resume.pdf" target="_blank" rel="noopener">Résumé <span>PDF ↗</span></a>
+      </nav>
+    </div>
+  </section>
+</main>
+
+<footer class="foot wrap">
+  <a class="xlink" href="../music/">
+    <span class="xlink__tag">Off the clock</span>
+    <span class="xlink__txt">I also make rap music as Froncu. New releases, videos and bookings.</span>
+    <span class="xlink__go" aria-hidden="true">→</span>
+  </a>
+  <div class="mono foot__base">
+    <p>© <span id="yr">2026</span> Jakub Frątczak · Fully AI coded</p>
+    <p><a href="../">← froncu.dev</a> &nbsp;·&nbsp; <a href="../music/">Music →</a></p>
+  </div>
+</footer>
+
+<script>
+document.documentElement.classList.add('js');
+document.getElementById('yr').textContent = new Date().getFullYear();
+
+/* ══════════════════════════════════════════════════════════════════════
+   1. SCROLL REVEAL
+   ══════════════════════════════════════════════════════════════════════ */
+const io = new IntersectionObserver(entries => {
+  entries.forEach(en => { if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); } });
+}, { rootMargin:'0px 0px -8% 0px' });
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+/* ══════════════════════════════════════════════════════════════════════
+   2. C++ HIGHLIGHTING for code listings (tiny, good enough for a figure)
+   ══════════════════════════════════════════════════════════════════════ */
+(function highlight(){
+  const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const KW = 'auto|const|constexpr|co_await|co_return|co_yield|if|else|for|while|return|struct|class|namespace|static|noexcept|this|true|false|nullptr|using|template|typename|std';
+  const re = new RegExp('(//[^\\n]*)|("(?:\\\\.|[^"\\\\])*")|\\b(' + KW + ')\\b|\\b([A-Z]\\w*)\\b|\\b(\\d[\\w\']*)\\b|\\b([a-z_]\\w*)(?=\\()', 'g');
+  const CLS = ['c', 's', 'k', 't', 'n', 'f'];
+  document.querySelectorAll('pre code.cpp').forEach(el => {
+    const src = el.textContent;
+    let out = '', last = 0, m;
+    while ((m = re.exec(src))){
+      out += esc(src.slice(last, m.index));
+      const g = m.slice(1).findIndex(Boolean);
+      out += '<span class="tok-' + CLS[g] + '">' + esc(m[0]) + '</span>';
+      last = re.lastIndex;
+    }
+    el.innerHTML = out + esc(src.slice(last));
+  });
+})();
+
+/* ══════════════════════════════════════════════════════════════════════
+   3. FIG. 1: screenshots from my own projects, each linking to its write-up
+   ══════════════════════════════════════════════════════════════════════ */
+(function projectViewer(){
+  const SHOTS = [
+    { img:'cover.jpg',    fit:'cover',   href:'#eruptor', name:'Eruptor',  meta:'Vulkan · deferred PBR',      alt:'Sponza rendered in Eruptor, my Vulkan deferred PBR renderer' },
+    { img:'fronge.png',   fit:'cover',   href:'#fronge',  name:'Fronge',   meta:'C++23 · ECS · 2D physics',   alt:'The Sandbox project running on my Fronge engine' },
+    { img:'nes.png',      fit:'contain', href:'#frones',  name:'FroNES',   meta:'C++23 coroutines · 6502',    alt:'The FroNES emulator debugger' },
+    { img:'neslides.png', fit:'contain', href:'#more',    name:'NESlides', meta:'6502 assembly · NES',        alt:'NESlides running on the NES' }
+  ];
+  const tabs = Array.prototype.slice.call(document.querySelectorAll('#vp .vp__tab'));
+  const img = document.getElementById('vpImg'), stage = document.getElementById('vpStage');
+  const meta = document.getElementById('vpMeta'), link = document.getElementById('vpLink');
+  let current = 0, timer = 0;
+
+  function show(i){
+    if (i === current) return;
+    current = i;
+    const s = SHOTS[i];
+    tabs.forEach((t, k) => { t.setAttribute('aria-selected', String(k === i)); t.tabIndex = k === i ? 0 : -1; });
+    stage.href = link.href = s.href;
+    meta.innerHTML = '<b>' + s.name + '</b> · ' + s.meta;
+    img.classList.add('is-out');
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      img.onload = () => img.classList.remove('is-out');
+      img.className = s.fit === 'contain' ? 'is-contain is-out' : 'is-out';
+      img.alt = s.alt;
+      img.src = s.img;
+      if (img.complete) img.classList.remove('is-out');
+    }, 180);
+  }
+
+  tabs.forEach((tab, i) => {
+    tab.tabIndex = i === 0 ? 0 : -1;
+    tab.addEventListener('click', () => show(i));
+    tab.addEventListener('keydown', e => {
+      const d = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      const n = (i + d + tabs.length) % tabs.length;
+      tabs[n].focus(); show(n);
+    });
+  });
+
+  /* warm the cache once the page has settled, so switching is instant */
+  addEventListener('load', () => setTimeout(() => SHOTS.slice(1).forEach(s => { new Image().src = s.img; }), 600));
+})();
+</script>
+</body>
+</html>

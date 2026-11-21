@@ -1,3 +1,10 @@
-/*
+# FroNES runs on WebAssembly threads (SharedArrayBuffer), which needs
+# cross-origin isolation. Scoped to the emulator only: site-wide it would
+# block the Spotify / YouTube embeds on /music/.
+/code/frones
+  Cross-Origin-Opener-Policy: same-origin
+  Cross-Origin-Embedder-Policy: require-corp
+
+/code/frones/*
   Cross-Origin-Opener-Policy: same-origin
   Cross-Origin-Embedder-Policy: require-corp

@@ -1,0 +1,15 @@
+# Everything programming-related moved from / into /code/.
+# Keep the old URLs alive (résumé links in applications, the FroNES
+# "play in browser" link, og:image caches, images hot-linked from READMEs).
+/resume.pdf              /code/resume.pdf               301
+/frones                  /code/frones/                  301
+/frones/*                /code/frones/:splat            301
+/hero.png                /code/hero.png                 301
+/eruptor.png             /code/eruptor.png              301
+/fronge.png              /code/fronge.png               301
+/nes.png                 /code/nes.png                  301
+/neslides.png            /code/neslides.png             301
+/just_keep_swimming.png  /code/just_keep_swimming.png   301
+/kidults.png             /code/kidults.png              301
+/shovel_knight.png       /code/shovel_knight.png        301
+/projects.json           /code/projects.json            301
