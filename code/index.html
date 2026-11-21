@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />   <!-- dark scrollbars and a dark canvas between page loads -->
 <title>Jakub Frątczak - Graphics engineer</title>
 <meta name="description" content="Jakub Frątczak, graphics engineer at Day III Digital. On the side: a Vulkan PBR renderer, a 2D engine built from scratch, and a cycle-accurate NES emulator on C++ coroutines." />
 <meta name="theme-color" content="#0D0E11" />
@@ -14,9 +15,12 @@
 <!-- page transition: cover from the first paint until transitions.js takes over (failsafe after 4.5s) -->
 <style>
 html.fx-in::after{content:""; position:fixed; inset:0; z-index:10000; background:#0D0E11; animation:fx-failsafe .3s 4.5s forwards}
+html.fx-in::before{content:""; position:fixed; inset:0; z-index:10001; opacity:.55; animation:fx-failsafe .3s 4.5s forwards;
+  background:linear-gradient(#22252C 1px, transparent 1px) 0 0/40px 40px, linear-gradient(90deg, #22252C 1px, transparent 1px) 0 0/40px 40px;
+  -webkit-mask-image:radial-gradient(70% 65% at 50% 50%, #000, transparent 80%); mask-image:radial-gradient(70% 65% at 50% 50%, #000, transparent 80%)}
 @keyframes fx-failsafe{to{opacity:0; visibility:hidden}}
 </style>
-<noscript><style>html.fx-in::after{display:none}</style></noscript>
+<noscript><style>html.fx-in::after,html.fx-in::before{display:none}</style></noscript>
 <script>(function(r){if(!matchMedia('(prefers-reduced-motion: reduce)').matches){r.classList.add('fx-in','fx-busy');setTimeout(function(){r.classList.remove('fx-in','fx-busy')},4500)}})(document.documentElement)</script>
 <script src="../transitions.js" defer></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />

@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="color-scheme" content="dark" />   <!-- dark scrollbars and a dark canvas between page loads -->
 <title>Jakub "Froncu" Frątczak</title>
 <meta name="description" content="Jakub Frątczak, a.k.a. Froncu. Graphics engineer and rapper. Pick a side." />
 <meta name="theme-color" content="#0D0E11" />
@@ -48,6 +49,7 @@ html.fx-in::after{content:""; position:fixed; inset:0; z-index:10000; background
 
 *,*::before,*::after{box-sizing:border-box}
 html,body{height:100%}
+html{overflow-y:scroll}   /* nothing scrolls here, but keeping the track (like /code/ and /music/) stops the layout jumping between pages */
 body{margin:0; background:var(--m-bg); color:var(--c-fg); -webkit-font-smoothing:antialiased; overflow:hidden}
 a{color:inherit; text-decoration:none}
 img{display:block}

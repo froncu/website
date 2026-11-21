@@ -6,7 +6,9 @@
    Moving between the pages plays the destination's cover first, so the intro of
    the next page picks up exactly where the outro stopped.
    Each page sets <html data-fx="home|code|music"> plus a tiny inline cover in its
-   <head>, so nothing flashes before this script runs. */
+   <head> that looks exactly like the first frame of its intro (and the last frame of
+   the outro leading to it), so the hand-over between pages is seamless.
+   Intros can't be skipped: clicks, scrolling and keys are held until they finish. */
 (function () {
   'use strict';
   const root = document.documentElement;
@@ -29,7 +31,7 @@
 .fx--code .fx__grid{position:absolute; inset:0; opacity:.55;
   background:linear-gradient(#22252C 1px, transparent 1px) 0 0/40px 40px, linear-gradient(90deg, #22252C 1px, transparent 1px) 0 0/40px 40px;
   -webkit-mask-image:radial-gradient(70% 65% at 50% 50%, #000, transparent 80%); mask-image:radial-gradient(70% 65% at 50% 50%, #000, transparent 80%)}
-.fx__term{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(500px, calc(100vw - 40px));
+.fx__term{position:absolute; left:50%; top:50%; transform:translate(-50%,-50%); width:min(500px, calc(100vw - 40px)); visibility:hidden;
   font-size:clamp(12px, 1.15vw, 15px); line-height:2}
 .fx__term p{margin:0; white-space:nowrap; overflow:hidden}
 .fx__pr{color:#6C707A} .fx__dollar{color:#8C8CFF}
@@ -91,14 +93,22 @@
         [0, .12, .26, .06, .2, .32, .1, .24, .04].map(d => `<i style="animation-delay:-${d}s"></i>`).join('')}</div></div>` : ''}</div>`);
   }
   function homeCover(withNames){
-    return make(`<div class="fx fx--home${stacked() ? ' fx--stacked' : ''}" aria-hidden="true">
+    const v = stacked();
+    const o = make(`<div class="fx fx--home${v ? ' fx--stacked' : ''}" aria-hidden="true">
       <div class="fx__door fx__door--a">${withNames ? '<span class="fx__who fx__who--code">Jakub Frątczak</span>' : ''}</div>
       <div class="fx__door fx__door--b">${withNames ? '<span class="fx__who fx__who--music">Froncu</span>' : ''}</div>
       ${withNames ? '<i class="fx__seam"></i>' : ''}</div>`);
+    /* split on a whole pixel, rounding down like the 50% gradient of the inline cover does,
+       so on odd widths the seam doesn't flip by a pixel when one page hands over to the next */
+    const size = v ? root.clientHeight : root.clientWidth, cut = Math.floor(size / 2);
+    const [da, db] = o.querySelectorAll('.fx__door'), seam = o.querySelector('.fx__seam');
+    if (v){ da.style.inset = `0 0 ${size - cut}px 0`; db.style.inset = `${cut}px 0 0 0`; if (seam) seam.style.top = cut + 'px'; }
+    else  { da.style.inset = `0 ${size - cut}px 0 0`; db.style.inset = `0 0 0 ${cut}px`; if (seam) seam.style.left = cut + 'px'; }
+    return o;
   }
 
   /* ── intros: start fully covered (matching the inline cover), end revealed ── */
-  let current = null, skipped = false;
+  let current = null, leaving = false;
   const done = () => {
     root.classList.remove('fx-in', 'fx-busy');
     document.querySelectorAll('.fx, .fx-scan').forEach(n => n.remove());
@@ -109,16 +119,15 @@
     const o = current = codeCover(true), scan = make('<div class="fx-scan" style="opacity:0"></div>');
     document.body.append(o, scan);
     root.classList.remove('fx-in');
-    await fonts('500 14px "Geist Mono"', 300);
+    await fonts('500 14px "Geist Mono"', 400);
+    o.querySelector('.fx__term').style.visibility = 'visible';   // only once the real font is in, so the text never swaps
     const [cmd] = o.querySelectorAll('.fx__cmd'), outs = o.querySelectorAll('.fx__out'), bar = o.querySelector('.fx__bar span');
     await run(cmd, [{ clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0 0 0)' }], { duration: 260, easing: 'steps(20, end)' });
     for (const line of outs){
-      if (skipped) return;
       run(line, [{ opacity: 0, transform: 'translateY(5px)' }, { opacity: 1, transform: 'none' }], { duration: 140, easing: SOFT });
       await wait(100);
     }
     await run(bar, [{ transform: 'scaleX(0)' }, { transform: 'scaleX(.7)', offset: .6 }, { transform: 'scaleX(1)' }], { duration: 320, easing: 'cubic-bezier(.3,0,.2,1)' });
-    if (skipped) return;
     await wait(60);
     root.classList.remove('fx-busy');
     scan.style.opacity = 1;
@@ -133,11 +142,9 @@
     document.body.append(o);
     root.classList.remove('fx-in');
     await fonts('400 100px Anton', 450);
-    if (skipped) return;
     const mark = o.querySelector('.fx__mark');
     await run(mark, [{ opacity: 0, transform: 'scale(1.1)' }, { opacity: 1, transform: 'scale(1)' }], { duration: 260, easing: SOFT });
     await wait(300);
-    if (skipped) return;
     run(mark, [{ opacity: 1 }, { opacity: 0, transform: 'scale(.94)' }], { duration: 180, easing: 'ease-in' });
     root.classList.remove('fx-busy');
     const bars = Array.from(o.querySelectorAll('.fx__bars i')), mid = (bars.length - 1) / 2;
@@ -152,13 +159,11 @@
     document.body.append(o);
     root.classList.remove('fx-in');
     await Promise.all([fonts('600 40px Geist', 400), fonts('400 60px Anton', 400)]);
-    if (skipped) return;
     const [a, b] = o.querySelectorAll('.fx__who'), seam = o.querySelector('.fx__seam');
     run(seam, [{ transform: v ? 'scaleX(0)' : 'scaleY(0)' }, { transform: v ? 'scaleX(1)' : 'scaleY(1)' }], { duration: 320, easing: EASE });
     run(a, [{ opacity: 0, transform: v ? 'translateY(16px)' : 'translateX(22px)' }, { opacity: 1, transform: 'none' }], { duration: 380, delay: 120, easing: SOFT });
     await run(b, [{ opacity: 0, transform: v ? 'translateY(-16px)' : 'translateX(-22px)' }, { opacity: 1, transform: 'none' }], { duration: 380, delay: 170, easing: SOFT });
     await wait(220);
-    if (skipped) return;
     root.classList.remove('fx-busy');
     const [da, db] = o.querySelectorAll('.fx__door'), open = { duration: 640, easing: EASE };
     run(seam, [{ opacity: 1 }, { opacity: 0 }], { duration: 200 });
@@ -167,18 +172,15 @@
     done();
   }
 
-  /* any click or key during an intro skips straight to the page */
-  function skip(){
-    if (!current || skipped) return;
-    skipped = true;
-    const o = current;
-    root.classList.remove('fx-busy');
-    document.querySelectorAll('.fx-scan').forEach(n => n.remove());
-    run(o, [{ opacity: 1 }, { opacity: 0 }], { duration: 180 }).then(done);
-  }
+  /* intros and outros can't be skipped or interrupted: hold clicks, scrolling and keys */
+  const busy = () => !!current || leaving;
+  const hold = e => { if (busy()){ e.preventDefault(); e.stopPropagation(); } };
+  ['click', 'auxclick', 'contextmenu'].forEach(t => addEventListener(t, hold, true));
+  ['wheel', 'touchmove'].forEach(t => addEventListener(t, hold, { passive: false, capture: true }));
+  const HELD = new Set([' ', 'Spacebar', 'Enter', 'Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'PageUp', 'PageDown', 'Home', 'End']);
+  addEventListener('keydown', e => { if (busy() && HELD.has(e.key)) e.preventDefault(); }, true);   // browser shortcuts (F5, F11…) still work
 
   /* ── outros: cover the page in the destination's style, then go ───────── */
-  let leaving = false;
   async function outro(dest, href){
     leaving = true;
     if (dest === 'code'){
@@ -186,7 +188,7 @@
       document.body.append(o, scan);
       const sweep = { duration: 460, easing: EASE };
       run(o, [{ clipPath: 'inset(0 0 100% 0)' }, { clipPath: 'inset(0 0 0 0)' }], sweep);
-      await run(scan, [{ transform: 'translateY(0)' }, { transform: 'translateY(calc(100vh - 2px))' }], sweep);
+      await run(scan, [{ transform: 'translateY(0)', opacity: 1 }, { transform: 'translateY(calc(100vh - 2px))', opacity: 1, offset: .88 }, { transform: 'translateY(calc(100vh - 2px))', opacity: 0 }], sweep);
     } else if (dest === 'music'){
       const o = musicCover(false);
       document.body.append(o);
@@ -212,21 +214,27 @@
   }
 
   document.addEventListener('click', e => {
-    if (still || leaving || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     const a = e.target.closest && e.target.closest('a[href]');
     if (!a || (a.target && a.target !== '_self') || a.hasAttribute('download')) return;
     const url = new URL(a.href, location.href);
     const dest = destination(url);
-    if (!dest || url.pathname.replace(/index\.html$/, '') === location.pathname.replace(/index\.html$/, '')) return;
+    if (!dest) return;
+    /* a link to the page you're already on (e.g. "Music" while on music): no reload, no intro,
+       just glide back to the top. Same-page #anchors are left to the browser. */
+    if (url.pathname.replace(/index\.html$/, '') === location.pathname.replace(/index\.html$/, '')){
+      if (url.hash) return;
+      e.preventDefault();
+      scrollTo({ top: 0, behavior: still ? 'auto' : 'smooth' });
+      return;
+    }
+    if (still) return;
     e.preventDefault();
-    skip();
     outro(dest, url.href);
   });
 
-  ['pointerdown', 'keydown', 'wheel', 'touchstart'].forEach(t => addEventListener(t, skip, { passive: true }));
-
   /* coming back with the back button must never show a leftover cover */
-  addEventListener('pageshow', e => { if (e.persisted){ leaving = false; skipped = false; done(); } });
+  addEventListener('pageshow', e => { if (e.persisted){ leaving = false; done(); } });
 
   if (still || !root.classList.contains('fx-in')){ done(); return; }
   ({ code: introCode, music: introMusic, home: introHome }[page] || done)();
