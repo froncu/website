@@ -16,9 +16,44 @@
 <style>
 html.fx-in::after{content:""; position:fixed; inset:0; z-index:10000; background:#FF3B24; animation:fx-failsafe .3s 4.5s forwards}
 @keyframes fx-failsafe{to{opacity:0; visibility:hidden}}
+/* custom scrollbar (desktop): native one hidden, .rail drawn instead; colours per page */
+:root{--rail-bg:#0B0908; --rail-thumb:#FF3B24; --rail-hot:#FF6A55}
+html{scrollbar-color:var(--rail-thumb) var(--rail-bg)}   /* touch / fallback: native scrollbar in the page colours */
+html.has-rail{scrollbar-width:none}
+html.has-rail::-webkit-scrollbar{display:none}
+.rail{position:fixed; top:0; right:0; bottom:0; width:12px; z-index:10002; background-color:var(--rail-bg); cursor:default}
+.rail__thumb{position:absolute; top:0; right:3px; width:6px; height:0; border-radius:3px; opacity:0;
+  background-color:var(--rail-thumb); transition:width .15s, right .15s, background-color .2s}
+.rail:hover .rail__thumb,.rail.is-drag .rail__thumb{width:8px; right:2px; background-color:var(--rail-hot)}
 </style>
 <noscript><style>html.fx-in::after{display:none}</style></noscript>
-<script>(function(r){if(!matchMedia('(prefers-reduced-motion: reduce)').matches){r.classList.add('fx-in','fx-busy');setTimeout(function(){r.classList.remove('fx-in','fx-busy')},4500)}})(document.documentElement)</script>
+<script>(function(r){
+  /* page intro cover (see transitions.js) */
+  if(!matchMedia('(prefers-reduced-motion: reduce)').matches) r.classList.add('fx-in','fx-busy');
+  /* custom scrollbar on desktop: built as the first thing in the page body from the previous
+     page's state, so it never blinks between pages; transitions.js morphs it and keeps it in sync */
+  var fine = matchMedia('(hover:hover) and (pointer:fine)').matches;
+  if(fine) r.classList.add('has-rail');
+  window.__fxRail = function(){
+    if(!fine) return;
+    var d = document.createElement('div'), t = document.createElement('i');
+    d.className = 'rail'; d.setAttribute('aria-hidden', 'true'); t.className = 'rail__thumb'; d.appendChild(t);
+    try{
+      var s = JSON.parse(sessionStorage.getItem('fx-rail') || 'null'), h = r.clientHeight;
+      if(s && Date.now() - s.t < 10000){
+        d.style.backgroundColor = s.bg; t.style.backgroundColor = s.thumb; t.style.opacity = s.o;
+        t.style.height = s.h * h + 'px'; t.style.transform = 'translateY(' + s.top * h + 'px)';
+        d.setAttribute('data-from', '');
+      }
+    }catch(e){}
+    document.body.appendChild(d);
+  };
+  /* failsafe: if transitions.js never runs, drop the cover and bring the native scrollbar back */
+  setTimeout(function(){
+    r.classList.remove('fx-in','fx-busy');
+    if(!document.querySelector('.rail.is-live')){ r.classList.remove('has-rail'); var x = document.querySelector('.rail'); if(x) x.remove(); }
+  }, 4500);
+})(document.documentElement)</script>
 <script src="../transitions.js" defer></script>
 <link rel="icon" href="favicon.svg" type="image/svg+xml" />
 <link rel="icon" href="favicon-32.png" type="image/png" sizes="32x32" />
@@ -523,6 +558,7 @@ a.pf:hover .pf__txt small{color:var(--ink)}
 </head>
 
 <body>
+<script>window.__fxRail && __fxRail()</script>
 <a class="skip" href="#latest">Skip to the latest release</a>
 
 <header class="nav">

@@ -204,6 +204,7 @@
       run(da, [{ transform: v ? 'translateY(-101%)' : 'translateX(-101%)' }, { transform: 'none' }], close);
       await run(db, [{ transform: v ? 'translateY(101%)' : 'translateX(101%)' }, { transform: 'none' }], close);
     }
+    railSave();
     location.href = href;
   }
 
@@ -233,9 +234,96 @@
     outro(dest, url.href);
   });
 
+  /* ── custom scrollbar (desktop) ─────────────────────────────────────────
+     The rail is built first thing in the page body by the page's inline script, already
+     showing the previous page's thumb. Here it morphs to this page's size, position and
+     colours, then follows the scroll; the thumb drags, the track pages up and down. */
+  const rail = document.querySelector('.rail');
+  const thumb = rail && rail.querySelector('.rail__thumb');
+  let morphing = false, drag = null;
+
+  function railGeo(){
+    const ch = root.clientHeight, sh = Math.max(root.scrollHeight, ch), max = sh - ch, on = max > 1;
+    const h = on ? Math.max(36, ch * ch / sh) : ch;
+    return { ch, max, h, top: on ? (scrollY / max) * (ch - h) : 0, o: on ? 1 : 0 };
+  }
+  function railPut(g){
+    thumb.style.height = g.h + 'px';
+    thumb.style.transform = `translateY(${g.top}px)`;
+    thumb.style.opacity = g.o;
+  }
+  let syncQueued = false;
+  function railSync(){
+    if (syncQueued || morphing || !thumb) return;
+    syncQueued = true;
+    requestAnimationFrame(() => { syncQueued = false; if (!morphing) railPut(railGeo()); });
+  }
+  function railSave(){
+    if (!thumb) return;
+    const g = railGeo();
+    try {
+      sessionStorage.setItem('fx-rail', JSON.stringify({
+        t: Date.now(), h: g.h / g.ch, top: g.top / g.ch, o: g.o,
+        bg: getComputedStyle(rail).backgroundColor, thumb: getComputedStyle(thumb).backgroundColor
+      }));
+    } catch (_) {}
+  }
+
+  function railInit(){
+    if (!thumb) return;
+    rail.classList.add('is-live');
+    const css = getComputedStyle(root);
+    const target = { bg: css.getPropertyValue('--rail-bg').trim(), thumb: css.getPropertyValue('--rail-thumb').trim() };
+    const carried = rail.hasAttribute('data-from');
+    const m = /translateY\(([-\d.]+)px\)/.exec(thumb.style.transform);
+    const from = carried
+      ? { h: thumb.offsetHeight, top: m ? +m[1] : 0, o: +getComputedStyle(thumb).opacity,
+          bg: getComputedStyle(rail).backgroundColor, thumb: getComputedStyle(thumb).backgroundColor }
+      : { h: 0, top: 0, o: 0, bg: target.bg, thumb: target.thumb };
+    rail.removeAttribute('data-from');
+    rail.style.backgroundColor = thumb.style.backgroundColor = '';   // hand colours back to the page's CSS
+    const to = railGeo();
+    railPut(to);
+    if (!still){
+      morphing = true;
+      const slow = { duration: 900, easing: 'cubic-bezier(.65,0,.25,1)' };
+      Promise.all([
+        thumb.animate([
+          { height: from.h + 'px', transform: `translateY(${from.top}px)`, opacity: from.o, backgroundColor: from.thumb },
+          { height: to.h + 'px',   transform: `translateY(${to.top}px)`,   opacity: to.o,   backgroundColor: target.thumb }], slow).finished,
+        rail.animate([{ backgroundColor: from.bg }, { backgroundColor: target.bg }], slow).finished
+      ]).then(() => { morphing = false; railSync(); }, () => { morphing = false; });
+    }
+
+    addEventListener('scroll', railSync, { passive: true });
+    addEventListener('resize', railSync);
+    if ('ResizeObserver' in window) new ResizeObserver(railSync).observe(document.body);
+
+    thumb.addEventListener('pointerdown', e => {
+      if (e.button !== 0 || busy()) return;
+      e.preventDefault(); e.stopPropagation();
+      const g = railGeo();
+      drag = { id: e.pointerId, y: e.clientY, s: scrollY, k: g.max / Math.max(1, g.ch - g.h) };
+      rail.classList.add('is-drag');
+      thumb.setPointerCapture(e.pointerId);
+    });
+    thumb.addEventListener('pointermove', e => {
+      if (drag) scrollTo({ top: drag.s + (e.clientY - drag.y) * drag.k, behavior: 'instant' });
+    });
+    const release = () => { drag = null; rail.classList.remove('is-drag'); };
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(t => thumb.addEventListener(t, release));
+    rail.addEventListener('pointerdown', e => {           // track click: a page up or down
+      if (e.target !== rail || e.button !== 0 || busy()) return;
+      const g = railGeo(), dir = e.clientY < g.top ? -1 : e.clientY > g.top + g.h ? 1 : 0;
+      if (dir) scrollBy({ top: dir * g.ch * .9, behavior: still ? 'auto' : 'smooth' });
+    });
+  }
+  addEventListener('pagehide', railSave);   // back/forward and typed navigations morph from here too
+
   /* coming back with the back button must never show a leftover cover */
   addEventListener('pageshow', e => { if (e.persisted){ leaving = false; done(); } });
 
+  railInit();
   if (still || !root.classList.contains('fx-in')){ done(); return; }
   ({ code: introCode, music: introMusic, home: introHome }[page] || done)();
 })();
